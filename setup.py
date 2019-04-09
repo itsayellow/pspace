@@ -1,0 +1,26 @@
+# setup for tictoc package
+
+import os.path
+from setuptools import setup
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+setup(
+        name='pspace',
+        version='0.1',
+        description='Support for running jobs on Paperspace cloud computing',
+        author='Matthew Clapp',
+        author_email='itsayellow+dev@gmail.com',
+        license='MIT',
+        classifiers=[
+            'Development Status :: 3 - Alpha',
+            'Intended Audience :: Developers',
+            'License :: OSI Approved :: MIT License',
+            'Programming Language :: Python :: 3'
+            'Programming Language :: Python :: 2'
+            ],
+        keywords='cloud paperspace',
+        packages=['pspace'],
+        install_requires['paperspace']
+        #python_requires='>=3',
+        )
