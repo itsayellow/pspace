@@ -219,7 +219,7 @@ def save_last_info(job_info, extra_info=None):
 
 
 def get_last_info():
-    job_info = {}
+    info = {}
 
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
     pspace_job_info_path = pspace_info_path / 'info.json'
