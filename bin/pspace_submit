@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import pathlib
+
+import pspace
+
+
+job_config = pspace.get_config()
+
+job_info = pspace.run_cmd(
+        cmd_str=job_config['command'],
+        machine_type=job_config['machineType'],
+        container=job_config['container'],
+        ignore_files=job_config['ignoreFiles'],
+        )
+
+pspace.save_last_info(job_info)
+
+print(job_info)
