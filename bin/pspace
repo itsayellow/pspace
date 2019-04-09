@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+#
+# Bare bones python template for parsing command-line arguments
+
+import argparse
+import sys
+
+import pspace
+
+def process_command_line(argv):
+    """Process command line invocation arguments and switches.
+
+    Args:
+        argv: list of arguments, or `None` from ``sys.argv[1:]``.
+
+    Returns:
+        argparse.Namespace: named attributes of arguments and switches
+    """
+    #script_name = argv[0]
+    argv = argv[1:]
+
+    # initialize the parser object:
+    parser = argparse.ArgumentParser(
+            description="Utilities for submitting and monitoring paperspace jobs.")
+    subparsers = parser.add_subparsers(dest='pspace_cmd', help='sub-command help')
+   
+    # submit
+    parser_submit = subparsers.add_parser('submit', help='submit help')
+    parser_submit.add_argument(
+            '--command', action='store',
+            help='What command to execute on remote machine.'
+            )
+    parser_submit.add_argument(
+            '--machineType', action='store',
+            help='What type of remote machine to use.'
+            )
+   
+    # tail
+    parser_tail = subparsers.add_parser('tail', help='tail help')
+    parser_tail.add_argument('--baz', choices='XYZ', help='baz help')
+
+    # jobs
+    parser_jobs = subparsers.add_parser('jobs', help='jobs help')
+    parser_jobs.add_argument('--silly', choices='XYZ', help='baz help')
+
+    # specifying nargs= puts outputs of parser in list (even if nargs=1)
+
+    # required arguments
+    #parser.add_argument('arg1',
+    #        help="Description of first argument."
+    #        )
+
+    # switches/options:
+    #parser.add_argument(
+    #    '-s', '--max_size', action='store',
+    #    help='String specifying maximum size of images.  ' \
+    #            'Larger images will be resized. (e.g. "1024x768")')
+    #parser.add_argument(
+    #    '-o', '--omit_hidden', action='store_true',
+    #    help='Do not copy picasa hidden images to destination directory.')
+
+    args = parser.parse_args(argv)
+
+    return args
+
+
+def command_jobs():
+    pass
+
+def command_tail():
+    pass
+
+def command_submit(args):
+    override_args = vars(args)
+    override_args.pop('pspace_cmd')
+    job_config = pspace.get_config(override_args)
+
+    print(job_config)
+
+    job_info = pspace.jobs_create(**job_config)
+
+    pspace.save_last_info(job_info)
+
+    print("Job " + job_info['id'] + " submitted.")
+
+
+def main(argv=None):
+    args = process_command_line(argv)
+
+    if args.pspace_cmd == 'submit':
+        command_submit(args)
+    elif args.pspace_cmd == 'tail':
+        command_tail(args)
+    elif args.pspace_cmd == 'jobs':
+        command_jobs(args)
+    
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        status = main(sys.argv)
+    except KeyboardInterrupt:
+        # Make a very clean exit (no debug info) if user breaks with Ctrl-C
+        print("Stopped by Keyboard Interrupt", file=sys.stderr)
+        # exit error code for Ctrl-C
+        status = 130
+
+    sys.exit(status)
