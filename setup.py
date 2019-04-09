@@ -23,6 +23,7 @@ setup(
         packages=['pspace'],
         install_requires=['paperspace', 'pyyaml'],
         scripts=[
+            'bin/pspace',
             'bin/pspace_jobs',
             'bin/pspace_status',
             'bin/pspace_submit',
