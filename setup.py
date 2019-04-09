@@ -24,10 +24,6 @@ setup(
         install_requires=['paperspace', 'pyyaml'],
         scripts=[
             'bin/pspace',
-            'bin/pspace_jobs',
-            'bin/pspace_status',
-            'bin/pspace_submit',
-            'bin/pspace_tail',
             ],
         #python_requires='>=3',
         )
