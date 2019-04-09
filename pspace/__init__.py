@@ -3,5 +3,6 @@ from .pspace import (
         get_artifacts, save_log, follow_log,
         get_config,
         get_job_info,
+        jobs_list,
         save_last_info, get_last_info,
         )

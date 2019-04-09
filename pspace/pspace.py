@@ -82,6 +82,18 @@ def job_done(job_id):
     return job_info['state'] in ['Stopped', 'Cancelled', 'Failed', 'Error']
 
 
+def jobs_list():
+    """Return all running jobs
+    """
+    command = [
+            'paperspace', 'jobs', 'list',
+            '--state', 'Running'
+            ]
+    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    jobs_info = json.loads(cmd_proc.stdout.decode('utf8'))
+    return jobs_info
+
+
 def get_log_lines(job_id, line_start=0):
     command = [
             'paperspace', 'jobs', 'logs',
