@@ -18,40 +18,28 @@ import paperspace
 PSPACE_INFO_DIR = '.pspace'
 
 
-def run_cmd_python(cmd_str, machine_type, container, ignore_files):
-    # send job to paperspace, using paperspace-python command
-    # for paperspace-python, we need to explicitly save workspace
-    params = {
-            'container':container,
-            'machineType':machine_type,
-            'command':cmd_str,
-            'project':'mlexperiments',
-            'tail':'false',
-            'ignoreFiles':ignore_files,
-            'workspace':'.',
-            }
-    job_info = paperspace.jobs.create(params, no_logging=True)
-    return job_info
-
-
-def run_cmd_cli(cmd_str, machine_type, container, ignore_files):
+def jobs_create_cli(**kwargs):
     # send job to paperspace, using paperspace-node binary
     command = [
             'paperspace', 'jobs', 'create',
-            '--container', container,
-            '--machineType', machine_type,
-            '--command', cmd_str,
-            '--project', 'mlexperiments',
+            '--container', kwargs['container'],
+            '--machineType', kwargs['machineType'],
+            '--command', kwargs['command'],
+            '--project', kwargs['project'],
             '--tail', 'false',
-            '--ignoreFiles', ",".join(ignore_files),
+            '--ignoreFiles', ",".join(kwargs['ignoreFiles']),
             ]
     cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     job_info = json.loads(cmd_proc.stdout.decode('utf8'))
     return job_info
 
-def run_cmd(*args, **kwargs):
-    #return run_cmd_cli(*args, **kwargs)
-    return run_cmd_python(*args, **kwargs)
+
+def jobs_create(**kwargs):
+    params = kwargs.copy()
+    params.update({'workspace':'.', 'tail':'false',})
+    job_info = paperspace.jobs.create(params, no_logging=True)
+    return job_info
+
 
 def job_done(job_id):
     """Check if job is done (Successfully or unsuccessfully)
@@ -192,6 +180,7 @@ def get_job_info(job_id):
 def get_config(arg_config=None):
     if arg_config is None:
         arg_config = {}
+    arg_config = {x:arg_config[x] for x in arg_config if arg_config[x] is not None}
 
     default_config = {
             'command': './cmd_paperspace.sh',

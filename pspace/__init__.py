@@ -1,8 +1,8 @@
 from .pspace import (
-        run_cmd, job_done, get_log_lines,
+        jobs_create, jobs_list,
+        job_done, get_log_lines,
         get_artifacts, save_log, follow_log,
         get_config,
         get_job_info,
-        jobs_list,
         save_last_info, get_last_info,
         )
