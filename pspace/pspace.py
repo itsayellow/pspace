@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 
+"""pspace - Useful functions for running jobs on paperspace
+"""
 
+
+import copy
+import datetime
 import json
 import pathlib
 import subprocess
 import time
 
+import yaml
 import paperspace
 
 
-"""pspace - Useful functions for running jobs on paperspace
-"""
+PSPACE_INFO_DIR = '.pspace'
 
 
-def run_cmd2(cmd_str, machine_type, container, ignore_files):
+def run_cmd_python(cmd_str, machine_type, container, ignore_files):
     # send job to paperspace, using paperspace-python command
     # for paperspace-python, we need to explicitly save workspace
     params = {
@@ -22,14 +27,14 @@ def run_cmd2(cmd_str, machine_type, container, ignore_files):
             'command':cmd_str,
             'project':'mlexperiments',
             'tail':'false',
-            'ignoreFiles':ignore_files.split(","),
+            'ignoreFiles':ignore_files,
             'workspace':'.',
             }
     job_info = paperspace.jobs.create(params, no_logging=True)
     return job_info
 
 
-def run_cmd(cmd_str, machine_type, container, ignore_files):
+def run_cmd_cli(cmd_str, machine_type, container, ignore_files):
     # send job to paperspace, using paperspace-node binary
     command = [
             'paperspace', 'jobs', 'create',
@@ -38,12 +43,15 @@ def run_cmd(cmd_str, machine_type, container, ignore_files):
             '--command', cmd_str,
             '--project', 'mlexperiments',
             '--tail', 'false',
-            '--ignoreFiles', ignore_files,
+            '--ignoreFiles', ",".join(ignore_files),
             ]
     cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     job_info = json.loads(cmd_proc.stdout.decode('utf8'))
-    return (job_info, cmd_proc)
+    return job_info
 
+def run_cmd(*args, **kwargs):
+    #return run_cmd_cli(*args, **kwargs)
+    return run_cmd_python(*args, **kwargs)
 
 def job_done(job_id):
     """Check if job is done (Successfully or unsuccessfully)
@@ -144,3 +152,77 @@ def follow_log(job_id):
             print('\n'.join(log_lines))
         if time.time() - start_time > timeout:
             break
+
+
+def get_job_info(job_id):
+    command = [
+            'paperspace', 'jobs', 'show',
+            '--jobId', job_id
+            ]
+    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+    # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
+    # job_info['state'] is one of:
+    #   Pending - the job has not started setting up on a machine yet
+    #   Provisioned
+    #   Running - the job is setting up on a machine, running, or tearing down
+    #   Stopped - the job finished with a job command exit code of 0
+    #   Error - the job was unable to setup or run to normal completion
+    #   Failed - the job finished but the job command exit code was non-zero
+    #   Cancelled - the job was manual stopped before completion
+    #
+    # normal:
+    #   Pending -> Provisioned -> Running -> Stopped
+    #                                    \-> Cancelled
+    return job_info
+
+
+def get_config(arg_config=None):
+    if arg_config is None:
+        arg_config = {}
+
+    default_config = {
+            'command': './cmd_paperspace.sh',
+            'machineType': 'K80',
+            'container': 'itsayellow/tensorflow-python:latest',
+            'ignoreFiles': ['virt'],
+            'local_data_dir': 'data',
+            'project': None
+            }
+    with open('paperspace.yaml', 'r') as yaml_fh:
+        yaml_config = yaml.safe_load(yaml_fh)
+    job_config = copy.deepcopy(default_config)
+    for key in yaml_config:
+        job_config[key] = yaml_config[key]
+    for key in arg_config:
+        job_config[key] = arg_config[key]
+
+    return job_config
+
+
+def save_last_info(job_info):
+    pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
+    pspace_info_path.mkdir(exist_ok=True)
+    pspace_job_info_path = pspace_info_path / 'info.json'
+
+    job_info = {x:job_info[x] for x in job_info if job_info[x] is not None}
+    pspace_info = {'info_updated': str(datetime.datetime.now())}
+
+    info = {'job_info': job_info, 'pspace_info': pspace_info}
+
+    with pspace_job_info_path.open('w') as pspace_job_info_fh:
+        json.dump(info, pspace_job_info_fh, indent=4, sort_keys=True)
+
+
+def get_last_info():
+    job_info = {}
+
+    pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
+    pspace_job_info_path = pspace_info_path / 'info.json'
+    try:
+        with pspace_job_info_path.open('r') as pspace_job_info_fh:
+            info = json.load(pspace_job_info_fh)
+    except IOError:
+        print("Can't find pspace info for last job.")
+
+    return info
