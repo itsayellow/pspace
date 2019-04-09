@@ -212,13 +212,16 @@ def get_config(arg_config=None):
     return job_config
 
 
-def save_last_info(job_info):
+def save_last_info(job_info, extra_info=None):
+    if extra_info is None:
+        extra_info = {}
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
     pspace_info_path.mkdir(exist_ok=True)
     pspace_job_info_path = pspace_info_path / 'info.json'
 
     job_info = {x:job_info[x] for x in job_info if job_info[x] is not None}
     pspace_info = {'info_updated': str(datetime.datetime.now())}
+    pspace_info.update(extra_info)
 
     info = {'job_info': job_info, 'pspace_info': pspace_info}
 
