@@ -21,6 +21,6 @@ setup(
             ],
         keywords='cloud paperspace',
         packages=['pspace'],
-        install_requires['paperspace']
+        install_requires=['paperspace'],
         #python_requires='>=3',
         )
