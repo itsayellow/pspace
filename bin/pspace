@@ -86,6 +86,15 @@ def get_job_id(args, info):
     return job_id
 
 
+def parse_jobinfo_dt(dt_str):
+    """From dt string from job_info, return datetime in UTC
+    """
+    dt = datetime.datetime.strptime(
+                dt_str[:-5], "%Y-%m-%dT%H:%M:%S"
+                )
+    return dt.replace(tzinfo=datetime.timezone.utc)
+
+
 def command_status(args):
     info = pspace.get_last_info()
     job_id = get_job_id(args, info)
@@ -96,14 +105,20 @@ def command_status(args):
     print("Job: " + job_id)
     print("State: " + job_info['state'])
 
+    if job_info.get('dtStarted', None) is not None:
+        started_utc = parse_jobinfo_dt(job_info['dtStarted'])
+        started_local = started_utc.astimezone()
+        print("Started: " + started_local.strftime("%Y-%m-%d %I:%M:%S%p"))
+
     if job_info['state'] == "Stopped":
         # get finished datetime in local time zone
-        finished = datetime.datetime.strptime(
-                job_info['dtFinished'][:-5], "%Y-%m-%dT%H:%M:%S"
-                )
-        finished_utc = finished.replace(tzinfo=datetime.timezone.utc)
+        finished_utc = parse_jobinfo_dt(job_info['dtFinished'])
         finished_local = finished_utc.astimezone()
         print("Finished: " + finished_local.strftime("%Y-%m-%d %I:%M:%S%p"))
+        print("Duration: " + str(finished_utc - started_utc))
+        print("Exit Code: {0}".format(job_info['exitCode']))
+    else:
+        print("Duration (to now): " + str(finished_utc - datetime.now(datetime.timezone.utc)))
 
 
 def command_jobs(args):
