@@ -33,7 +33,7 @@ PSPACE_INFO_DIR = '.pspace'
 # pspace helpers -------------------------------------------------------------
 
 def job_not_started(job_id, job_info=None):
-    """Check if job is done (Successfully or unsuccessfully)
+    """Check if has not started yet
     Args:
         job_id (str): the Paperspace job ID string
     Returns:
@@ -42,6 +42,12 @@ def job_not_started(job_id, job_info=None):
     if job_info is None:
         job_info = paperspace.jobs.show({'jobId': job_id})
     return job_info['state'] in ['Pending', 'Provisioned']
+
+
+def job_started(job_id, job_info=None):
+    """Check if job has ever started
+    """
+    return not job_not_started(job_id=job_id, job_info=job_info)
 
 
 def job_done(job_id, job_info=None):
