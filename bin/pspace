@@ -24,7 +24,7 @@ def process_command_line(argv):
     parser = argparse.ArgumentParser(
             description="Utilities for creating and monitoring paperspace jobs.")
     subparsers = parser.add_subparsers(dest='pspace_cmd', help='sub-command help')
-   
+
     # create
     parser_create = subparsers.add_parser('create', help='create help')
     parser_create.add_argument(
@@ -35,7 +35,7 @@ def process_command_line(argv):
             '--machineType', action='store',
             help='What type of remote machine to use.'
             )
-   
+
     # tail (of job log file)
     parser_tail = subparsers.add_parser('tail', help='tail help')
     parser_tail.add_argument(
@@ -122,8 +122,8 @@ def command_status(args):
 
 
 def command_jobs(args):
-    pass
     # all datetimes start with dt in job_info (e.g. dtCreated, dtFinished, etc.)
+    job_list = pspace.jobs_list()
 
 
 def command_tail(args):
@@ -174,7 +174,7 @@ def main(argv=None):
         command_status(args)
     elif args.pspace_cmd == 'jobs':
         command_jobs(args)
-    
+
     return 0
 
 
