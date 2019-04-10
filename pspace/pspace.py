@@ -81,8 +81,7 @@ def jobs_list(**kwargs):
 def get_log_lines(job_id, line_start=0):
     params = {
             'jobId':job_id,
-            'line':str(line_start),
-            'json':True
+            'line':line_start
             }
     log_output = paperspace.jobs.logs(params, no_logging=True)
     # log_output is list of dicts, each dict:
