@@ -8,7 +8,6 @@ import copy
 import datetime
 import json
 import pathlib
-import subprocess
 import time
 
 import yaml
@@ -16,22 +15,6 @@ import paperspace
 
 
 PSPACE_INFO_DIR = '.pspace'
-
-
-def jobs_create_cli(**kwargs):
-    # send job to paperspace, using paperspace-node binary
-    command = [
-            'paperspace', 'jobs', 'create',
-            '--container', kwargs['container'],
-            '--machineType', kwargs['machineType'],
-            '--command', kwargs['command'],
-            '--project', kwargs['project'],
-            '--tail', 'false',
-            '--ignoreFiles', ",".join(kwargs['ignoreFiles']),
-            ]
-    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    job_info = json.loads(cmd_proc.stdout.decode('utf8'))
-    return job_info
 
 
 def jobs_create(**kwargs):
@@ -49,12 +32,7 @@ def job_not_started(job_id, job_info=None):
         bool: True if job has finished (and will not be running in future)
     """
     if job_info is None:
-        command = [
-                'paperspace', 'jobs', 'show',
-                '--jobId', job_id
-                ]
-        cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+        job_info = paperspace.jobs.show({'jobId': job_id})
     # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
     # job_info['state'] is one of:
     #   Pending - the job has not started setting up on a machine yet
@@ -81,12 +59,7 @@ def job_done(job_id, job_info=None):
         bool: True if job has finished (and will not be running in future)
     """
     if job_info is None:
-        command = [
-                'paperspace', 'jobs', 'show',
-                '--jobId', job_id
-                ]
-        cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+        job_info = paperspace.jobs.show({'jobId': job_id})
     # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
     # job_info['state'] is one of:
     #   Pending - the job has not started setting up on a machine yet
@@ -132,12 +105,6 @@ def get_artifacts(job_id, local_data_dir):
     local_data_path = pathlib.Path(local_data_dir)
     dest_path = local_data_path / job_id
     dest_path.mkdir(parents=True, exist_ok=True)
-    #command = [
-    #        'paperspace', 'jobs', 'artifactsGet',
-    #        '--jobId', job_id,
-    #        '--dest', str(dest_path),
-    #        ]
-    #cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     params = {
             'jobId': job_id,
             'dest': str(dest_path),
@@ -185,12 +152,7 @@ def follow_log(job_id):
 
 
 def get_job_info(job_id):
-    command = [
-            'paperspace', 'jobs', 'show',
-            '--jobId', job_id
-            ]
-    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+    job_info = paperspace.jobs.show({'jobId': job_id})
     # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
     # job_info['state'] is one of:
     #   Pending - the job has not started setting up on a machine yet
@@ -236,6 +198,7 @@ def get_config(subcommand, arg_config=None):
     return job_config
 
 
+# TODO: change last info format to YAML
 def save_last_info(job_info, extra_info=None):
     if extra_info is None:
         extra_info = {}
