@@ -3,6 +3,7 @@
 # Bare bones python template for parsing command-line arguments
 
 import argparse
+import datetime
 import sys
 
 import pspace
@@ -57,7 +58,7 @@ def process_command_line(argv):
             help='Filter only jobs matching this status.'
             )
     parser_jobs.add_argument(
-            '--last', action='store',
+            '--last', action='store', type=int,
             help='Only list the last this many jobs matching.'
             )
 
@@ -95,20 +96,30 @@ def command_status(args):
     print("Job: " + job_id)
     print("State: " + job_info['state'])
 
+    if job_info['state'] == "Stopped":
+        # get finished datetime in local time zone
+        finished = datetime.datetime.strptime(
+                job_info['dtFinished'][:-5], "%Y-%m-%dT%H:%M:%S"
+                )
+        finished_utc = finished.replace(tzinfo=datetime.timezone.utc)
+        finished_local = finished_utc.astimezone()
+        print("Finished: " + finished_local.strftime("%Y-%m-%d %I:%M:%S%p"))
+
 
 def command_jobs(args):
     pass
+    # all datetimes start with dt in job_info (e.g. dtCreated, dtFinished, etc.)
 
 
 def command_tail(args):
-    TAIL_LINES = 20
+    tail_lines = args.last or 20
 
     info = pspace.get_last_info()
     job_id = get_job_id(args, info)
 
     try:
         last_tot_log_lines = info['pspace_info']['total_log_lines']
-        line_start = last_tot_log_lines - TAIL_LINES
+        line_start = max(0, last_tot_log_lines - tail_lines)
     except KeyError:
         line_start = 0
 
