@@ -15,12 +15,22 @@ import paperspace
 PSPACE_INFO_DIR = '.pspace'
 
 
-def jobs_create(**kwargs):
-    params = kwargs.copy()
-    params.update({'workspace':'.', 'tail':'false',})
-    job_info = paperspace.jobs.create(params, no_logging=True)
-    return job_info
+# https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
+# job_info['state'] is one of:
+#   Pending - the job has not started setting up on a machine yet
+#   Provisioned
+#   Running - the job is setting up on a machine, running, or tearing down
+#   Stopped - the job finished with a job command exit code of 0
+#   Error - the job was unable to setup or run to normal completion
+#   Failed - the job finished but the job command exit code was non-zero
+#   Cancelled - the job was manual stopped before completion
+#
+# normal:
+#   Pending -> Provisioned -> Running -> Stopped
+#                                    \-> Failed
+#   other exits at any time: Error, Cancelled
 
+# pspace helpers -------------------------------------------------------------
 
 def job_not_started(job_id, job_info=None):
     """Check if job is done (Successfully or unsuccessfully)
@@ -31,21 +41,6 @@ def job_not_started(job_id, job_info=None):
     """
     if job_info is None:
         job_info = paperspace.jobs.show({'jobId': job_id})
-    # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
-    # job_info['state'] is one of:
-    #   Pending - the job has not started setting up on a machine yet
-    #   Provisioned - job has a machine but not running yet
-    #
-    #   Running - the job is setting up on a machine, running, or tearing down
-    #
-    #   Stopped - the job finished with a job command exit code of 0
-    #   Error - the job was unable to setup or run to normal completion
-    #   Failed - the job finished but the job command exit code was non-zero
-    #   Cancelled - the job was manually stopped before completion
-    #
-    # normal:
-    #   Pending -> Provisioned -> Running -> Stopped
-    #                                    \-> Cancelled
     return job_info['state'] in ['Pending', 'Provisioned']
 
 
@@ -58,20 +53,15 @@ def job_done(job_id, job_info=None):
     """
     if job_info is None:
         job_info = paperspace.jobs.show({'jobId': job_id})
-    # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
-    # job_info['state'] is one of:
-    #   Pending - the job has not started setting up on a machine yet
-    #   Provisioned
-    #   Running - the job is setting up on a machine, running, or tearing down
-    #   Stopped - the job finished with a job command exit code of 0
-    #   Error - the job was unable to setup or run to normal completion
-    #   Failed - the job finished but the job command exit code was non-zero
-    #   Cancelled - the job was manual stopped before completion
-    #
-    # normal:
-    #   Pending -> Provisioned -> Running -> Stopped
-    #                                    \-> Cancelled
     return job_info['state'] in ['Stopped', 'Cancelled', 'Failed', 'Error']
+
+# pspace main api ------------------------------------------------------------
+
+def jobs_create(**kwargs):
+    params = kwargs.copy()
+    params.update({'workspace':'.', 'tail':'false',})
+    job_info = paperspace.jobs.create(params, no_logging=True)
+    return job_info
 
 
 def jobs_list(**kwargs):
@@ -151,19 +141,6 @@ def follow_log(job_id):
 
 def get_job_info(job_id):
     job_info = paperspace.jobs.show({'jobId': job_id})
-    # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
-    # job_info['state'] is one of:
-    #   Pending - the job has not started setting up on a machine yet
-    #   Provisioned
-    #   Running - the job is setting up on a machine, running, or tearing down
-    #   Stopped - the job finished with a job command exit code of 0
-    #   Error - the job was unable to setup or run to normal completion
-    #   Failed - the job finished but the job command exit code was non-zero
-    #   Cancelled - the job was manual stopped before completion
-    #
-    # normal:
-    #   Pending -> Provisioned -> Running -> Stopped
-    #                                    \-> Cancelled
     return job_info
 
 
@@ -195,8 +172,8 @@ def get_config(subcommand, arg_config=None):
 
     return job_config
 
+# pspace info ----------------------------------------------------------------
 
-# TODO: change last info format to YAML
 def save_last_info(job_info, extra_info=None):
     if extra_info is None:
         extra_info = {}
