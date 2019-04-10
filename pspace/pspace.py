@@ -6,13 +6,11 @@
 
 import copy
 import datetime
-import json
 import pathlib
 import time
 
 import yaml
 import paperspace
-
 
 PSPACE_INFO_DIR = '.pspace'
 
@@ -174,7 +172,7 @@ def get_config(subcommand, arg_config=None):
         arg_config = {}
     arg_config = {x:arg_config[x] for x in arg_config if arg_config[x] is not None}
 
-    # TODO: keep default config?
+    # TODO: not use default config?
     default_config = {
             'create': {
                 'command': './cmd_paperspace.sh',
@@ -204,7 +202,7 @@ def save_last_info(job_info, extra_info=None):
         extra_info = {}
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
     pspace_info_path.mkdir(exist_ok=True)
-    pspace_job_info_path = pspace_info_path / 'info.json'
+    pspace_job_info_path = pspace_info_path / 'info.yaml'
 
     job_info = {x:job_info[x] for x in job_info if job_info[x] is not None}
     pspace_info = {'info_updated': str(datetime.datetime.now())}
@@ -213,17 +211,17 @@ def save_last_info(job_info, extra_info=None):
     info = {'job_info': job_info, 'pspace_info': pspace_info}
 
     with pspace_job_info_path.open('w') as pspace_job_info_fh:
-        json.dump(info, pspace_job_info_fh, indent=4, sort_keys=True)
+        yaml.dump(info, pspace_job_info_fh, width=70, indent=4, sort_keys=True)
 
 
 def get_last_info():
     info = {}
 
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
-    pspace_job_info_path = pspace_info_path / 'info.json'
+    pspace_job_info_path = pspace_info_path / 'info.yaml'
     try:
         with pspace_job_info_path.open('r') as pspace_job_info_fh:
-            info = json.load(pspace_job_info_fh)
+            info = yaml.safe_load(pspace_job_info_fh)
     except IOError:
         print("Can't find pspace info for last job.")
 
