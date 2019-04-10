@@ -12,7 +12,9 @@ import time
 import yaml
 import paperspace
 
+
 PSPACE_INFO_DIR = '.pspace'
+PSPACE_CONFIG_FILE = 'pspace.yaml'
 
 
 # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
@@ -166,7 +168,7 @@ def get_config(subcommand, arg_config=None):
                 'project': None
                 }
             }
-    with open('paperspace.yaml', 'r') as yaml_fh:
+    with open(PSPACE_CONFIG_FILE, 'r') as yaml_fh:
         yaml_config = yaml.safe_load(yaml_fh)
 
     # job_config is only subtree config[subcommand]
