@@ -5,6 +5,7 @@
 import argparse
 import datetime
 import sys
+import time
 
 import pspace
 
@@ -147,6 +148,17 @@ def command_tail(args):
     print("State: " + job_info['state'])
     for line in log_lines[-tail_lines:]:
         print(line)
+
+    if args.follow and not pspace.job_done(job_id):
+        line_start = len(log_lines) + line_start
+        last_log_line = log_lines[-1] if log_lines else ''
+        while last_log_line != "PSEOF":
+            time.sleep(5)
+            log_lines = pspace.get_log_lines(job_id, line_start=line_start)
+            line_start += len(log_lines)
+            last_log_line = log_lines[-1] if log_lines else last_log_line
+            for line in log_lines[-tail_lines:]:
+                print(line)
 
 
 def command_create(args):
