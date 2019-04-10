@@ -150,6 +150,9 @@ def command_tail(args):
         print(line)
 
     if args.follow and not pspace.job_done(job_id):
+        # TODO: if state is pre-Running, update the state using backspace
+        #   in real-time
+        end_time = None
         line_start = len(log_lines) + line_start
         last_log_line = log_lines[-1] if log_lines else ''
         while last_log_line != "PSEOF":
@@ -159,6 +162,12 @@ def command_tail(args):
             last_log_line = log_lines[-1] if log_lines else last_log_line
             for line in log_lines[-tail_lines:]:
                 print(line)
+            if end_time is not None:
+                # end follow loop for timeout 20 seconds after job done
+                if time.time() - end_time > 20:
+                    break
+            if pspace.job_done(job_id):
+                end_time = time.time()
 
 
 def command_create(args):
