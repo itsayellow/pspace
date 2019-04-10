@@ -70,6 +70,17 @@ def process_command_line(argv):
             help='ID of job to be checked.'
             )
 
+    # getart
+    parser_getart = subparsers.add_parser('getart', help='getart help')
+    parser_getart.add_argument(
+            '--job_id', action='store',
+            help='ID of job to fetch artifacts for.'
+            )
+    parser_getart.add_argument(
+            '--datadir', action='store', default='data',
+            help='Local data directory holding to put job data dir.'
+            )
+
     args = parser.parse_args(argv)
 
     return args
@@ -184,6 +195,15 @@ def command_create(args):
     print("Job " + job_info['id'] + " created.")
 
 
+def command_getart(args):
+    info = pspace.get_last_info()
+    job_id = get_job_id(args, info)
+    local_data_dir = args.datadir
+
+    pspace.get_artifacts(job_id, local_data_dir)
+    pspace.save_log(job_id, local_data_dir)
+
+
 def main(argv=None):
     args = process_command_line(argv)
 
@@ -195,6 +215,8 @@ def main(argv=None):
         command_status(args)
     elif args.pspace_cmd == 'jobs':
         command_jobs(args)
+    elif args.pspace_cmd == 'getart':
+        command_getart(args)
 
     return 0
 

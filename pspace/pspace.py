@@ -80,8 +80,8 @@ def jobs_list(**kwargs):
 
 def get_log_lines(job_id, line_start=0):
     params = {
-            'jobId':job_id,
-            'line':line_start
+            'jobId': job_id,
+            'line': line_start
             }
     log_output = paperspace.jobs.logs(params, no_logging=True)
     # log_output is list of dicts, each dict:
@@ -99,12 +99,17 @@ def get_artifacts(job_id, local_data_dir):
     local_data_path = pathlib.Path(local_data_dir)
     dest_path = local_data_path / job_id
     dest_path.mkdir(parents=True, exist_ok=True)
-    command = [
-            'paperspace', 'jobs', 'artifactsGet',
-            '--jobId', job_id,
-            '--dest', str(dest_path),
-            ]
-    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #command = [
+    #        'paperspace', 'jobs', 'artifactsGet',
+    #        '--jobId', job_id,
+    #        '--dest', str(dest_path),
+    #        ]
+    #cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    params = {
+            'jobId': job_id,
+            'dest': str(dest_path),
+            }
+    paperspace.jobs.artifactsGet(params)
 
 
 def save_log(job_id, local_data_dir):
