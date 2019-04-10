@@ -156,13 +156,23 @@ def command_tail(args):
     pspace.save_last_info(job_info, {'total_log_lines':total_log_lines})
 
     print("Job: " + job_id)
-    print("State: " + job_info['state'])
-    for line in log_lines[-tail_lines:]:
-        print(line)
+    print("State: " + job_info['state'] + " "*10, end="", flush=True)
+    if pspace.job_not_started(job_id, job_info) and args.follow:
+        # waiting for job to start, posting state while we wait
+        while pspace.job_not_started(job_id, job_info):
+            time.sleep(5)
+            last_state = job_info['state']
+            job_info = pspace.get_job_info(job_id)
+            if job_info['state'] != last_state:
+                print("\r", end="", flush=True)
+                print("State: " + job_info['state'] + " "*10, end="", flush=True)
+        print("")
+    else:
+        print("")
+        for line in log_lines[-tail_lines:]:
+            print(line)
 
     if args.follow and not pspace.job_done(job_id):
-        # TODO: if state is pre-Running, update the state using backspace
-        #   in real-time
         end_time = None
         line_start = len(log_lines) + line_start
         last_log_line = log_lines[-1] if log_lines else ''
