@@ -21,25 +21,33 @@ def process_command_line(argv):
 
     # initialize the parser object:
     parser = argparse.ArgumentParser(
-            description="Utilities for submitting and monitoring paperspace jobs.")
+            description="Utilities for creating and monitoring paperspace jobs.")
     subparsers = parser.add_subparsers(dest='pspace_cmd', help='sub-command help')
    
-    # submit
-    parser_submit = subparsers.add_parser('submit', help='submit help')
-    parser_submit.add_argument(
+    # create
+    parser_create = subparsers.add_parser('create', help='create help')
+    parser_create.add_argument(
             '--command', action='store',
             help='What command to execute on remote machine.'
             )
-    parser_submit.add_argument(
+    parser_create.add_argument(
             '--machineType', action='store',
             help='What type of remote machine to use.'
             )
    
-    # tail
+    # tail (of job log file)
     parser_tail = subparsers.add_parser('tail', help='tail help')
     parser_tail.add_argument(
             '--job_id', action='store',
             help='ID of job to be checked.'
+            )
+    parser_tail.add_argument(
+            '--last', action='store', type=int,
+            help='Only show the last this many lines.'
+            )
+    parser_tail.add_argument(
+            '-f', '--follow', action='store_true',
+            help='Follow the log file until cancelled or PSEOF.'
             )
 
     # jobs
@@ -111,14 +119,14 @@ def command_tail(args):
 
     print("Job: " + job_id)
     print("State: " + job_info['state'])
-    for line in log_lines[-TAIL_LINES:]:
+    for line in log_lines[-tail_lines:]:
         print(line)
 
 
-def command_submit(args):
+def command_create(args):
     override_args = vars(args)
     override_args.pop('pspace_cmd')
-    job_config = pspace.get_config(override_args)
+    job_config = pspace.get_config('create', override_args)
 
     print(job_config)
 
@@ -126,14 +134,14 @@ def command_submit(args):
 
     pspace.save_last_info(job_info)
 
-    print("Job " + job_info['id'] + " submitted.")
+    print("Job " + job_info['id'] + " created.")
 
 
 def main(argv=None):
     args = process_command_line(argv)
 
-    if args.pspace_cmd == 'submit':
-        command_submit(args)
+    if args.pspace_cmd == 'create':
+        command_create(args)
     elif args.pspace_cmd == 'tail':
         command_tail(args)
     elif args.pspace_cmd == 'status':

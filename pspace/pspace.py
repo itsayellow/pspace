@@ -177,24 +177,29 @@ def get_job_info(job_id):
     return job_info
 
 
-def get_config(arg_config=None):
+def get_config(subcommand, arg_config=None):
     if arg_config is None:
         arg_config = {}
     arg_config = {x:arg_config[x] for x in arg_config if arg_config[x] is not None}
 
+    # TODO: keep default config?
     default_config = {
-            'command': './cmd_paperspace.sh',
-            'machineType': 'K80',
-            'container': 'itsayellow/tensorflow-python:latest',
-            'ignoreFiles': ['virt'],
-            'local_data_dir': 'data',
-            'project': None
+            'create': {
+                'command': './cmd_paperspace.sh',
+                'machineType': 'K80',
+                'container': 'itsayellow/tensorflow-python:latest',
+                'ignoreFiles': ['virt'],
+                'local_data_dir': 'data',
+                'project': None
+                }
             }
     with open('paperspace.yaml', 'r') as yaml_fh:
         yaml_config = yaml.safe_load(yaml_fh)
-    job_config = copy.deepcopy(default_config)
-    for key in yaml_config:
-        job_config[key] = yaml_config[key]
+
+    # job_config is only subtree config[subcommand]
+    job_config = copy.deepcopy(default_config[subcommand])
+    for key in yaml_config[subcommand]:
+        job_config[key] = yaml_config[subcommand][key]
     for key in arg_config:
         job_config[key] = arg_config[key]
 
