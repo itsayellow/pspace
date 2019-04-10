@@ -41,19 +41,52 @@ def jobs_create(**kwargs):
     return job_info
 
 
-def job_done(job_id):
+def job_not_started(job_id, job_info=None):
     """Check if job is done (Successfully or unsuccessfully)
     Args:
         job_id (str): the Paperspace job ID string
     Returns:
         bool: True if job has finished (and will not be running in future)
     """
-    command = [
-            'paperspace', 'jobs', 'show',
-            '--jobId', job_id
-            ]
-    cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+    if job_info is None:
+        command = [
+                'paperspace', 'jobs', 'show',
+                '--jobId', job_id
+                ]
+        cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        job_info = json.loads(cmd_proc.stdout.decode('utf8'))
+    # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
+    # job_info['state'] is one of:
+    #   Pending - the job has not started setting up on a machine yet
+    #   Provisioned - job has a machine but not running yet
+    #
+    #   Running - the job is setting up on a machine, running, or tearing down
+    #
+    #   Stopped - the job finished with a job command exit code of 0
+    #   Error - the job was unable to setup or run to normal completion
+    #   Failed - the job finished but the job command exit code was non-zero
+    #   Cancelled - the job was manually stopped before completion
+    #
+    # normal:
+    #   Pending -> Provisioned -> Running -> Stopped
+    #                                    \-> Cancelled
+    return job_info['state'] in ['Pending', 'Provisioned']
+
+
+def job_done(job_id, job_info=None):
+    """Check if job is done (Successfully or unsuccessfully)
+    Args:
+        job_id (str): the Paperspace job ID string
+    Returns:
+        bool: True if job has finished (and will not be running in future)
+    """
+    if job_info is None:
+        command = [
+                'paperspace', 'jobs', 'show',
+                '--jobId', job_id
+                ]
+        cmd_proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        job_info = json.loads(cmd_proc.stdout.decode('utf8'))
     # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
     # job_info['state'] is one of:
     #   Pending - the job has not started setting up on a machine yet

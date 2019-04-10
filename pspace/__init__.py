@@ -1,6 +1,7 @@
 from .pspace import (
         jobs_create, jobs_list,
-        job_done, get_log_lines,
+        job_done, job_not_started,
+        get_log_lines,
         get_artifacts, save_log, follow_log,
         get_config,
         get_job_info,
