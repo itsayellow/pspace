@@ -89,6 +89,13 @@ def process_command_line(argv):
             help='Local data directory holding to put job data dir.'
             )
 
+    # stop
+    parser_stop = subparsers.add_parser('stop', help='stop or cancel a job')
+    parser_stop.add_argument(
+            '--job_id', action='store',
+            help='ID of job to fetch artifacts for.'
+            )
+
     args = parser.parse_args(argv)
 
     return args
@@ -230,6 +237,15 @@ def command_getart(args):
     pspace.save_log(job_id, local_data_dir)
 
 
+def command_stop(args):
+    pspace_last = pspace.get_last_info()
+    job_id = get_job_id(args, pspace_last)
+    returnval = pspace.stop_job(job_id)
+    if not returnval:
+        print("Success")
+
+
+
 def main(argv=None):
     args = process_command_line(argv)
 
@@ -243,6 +259,8 @@ def main(argv=None):
         command_jobs(args)
     elif args.pspace_cmd == 'getart':
         command_getart(args)
+    elif args.pspace_cmd == 'stop':
+        command_stop(args)
 
     return 0
 
