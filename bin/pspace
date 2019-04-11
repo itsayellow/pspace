@@ -124,7 +124,7 @@ def parse_jobinfo_dt(dt_str):
 
 
 def wrap_command_str(in_str, max_width, indent):
-    max_width = max_width - len(indent) - len('command:  ')
+    max_width = max_width - indent
     # wrap command list in a good way for commands (split at start of switch)
     command_list = in_str.split(' -')
     # after splitting, join as many pieces together that will fit on line
@@ -147,12 +147,13 @@ def wrap_command_str(in_str, max_width, indent):
         if i == 0:
             command_str += command_substr + "\n"
         else:
-            command_str += indent + " "*10 + "-" + command_substr + "\n"
+            command_str += " "*indent + "-" + command_substr + "\n"
     return command_str.rstrip()
 
 
 def print_create_options(create_options):
-    indent = " "*4
+    indent_str = " "*4
+    indent = 4 + len('command:  ')
 
     command_str = wrap_command_str(create_options['command'], 79, indent)
 
@@ -162,7 +163,7 @@ def print_create_options(create_options):
         else:
             opt_value = create_options[opt]
 
-        print(indent + opt + ": " + str(opt_value))
+        print(indent_str + opt + ": " + str(opt_value))
 
 
 def command_status(args):
