@@ -222,6 +222,7 @@ def get_last_info():
         with pspace_job_info_path.open('r') as pspace_job_info_fh:
             info = yaml.safe_load(pspace_job_info_fh)
     except IOError:
-        print("Can't find pspace info for last job.")
+        #print("Can't find pspace info for last job.")
+        info = None
 
     return info
