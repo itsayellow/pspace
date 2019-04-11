@@ -180,6 +180,11 @@ def get_config(subcommand, arg_config=None):
 
     return job_config
 
+
+def stop_job(job_id):
+    return paperspace.jobs.stop({'jobId':job_id})
+
+
 # pspace info ----------------------------------------------------------------
 
 def save_last_info(job_info, extra_info=None):
