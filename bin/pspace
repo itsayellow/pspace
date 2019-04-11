@@ -20,7 +20,35 @@ import pspace
 
 
 DEFAULT_TAIL_LINES = 20
-
+VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
+        'Error', 'Failed', 'Cancelled']
+CMD_ARG_DEFAULTS = {
+        'create':{
+            'command': 'command.sh',
+            'container': 'tensorflow/tensorflow-python:latest',
+            'machineType': 'K80',
+            'ignoreFiles': [],
+            },
+        'tail':{
+            'job_id': None,
+            'follow': False,
+            'last': 20,
+            'all': False,
+            },
+        'jobs':{
+            'state': None,
+            'last': None,
+            },
+        'status':{
+            'job_id': None,
+            },
+        'getart':{
+            'datadir': 'data',
+            },
+        'stop':{
+            'job_id': None,
+            },
+        }
 
 def process_command_line(argv):
     """Process command line invocation arguments and switches.
@@ -103,7 +131,7 @@ def process_command_line(argv):
     parser_stop = subparsers.add_parser('stop', help='stop or cancel a job')
     parser_stop.add_argument(
             'job_id', nargs='?',
-            help='ID of job to fetch artifacts for.'
+            help='ID of job to stop.'
             )
 
     args = parser.parse_args(argv)
@@ -174,43 +202,80 @@ def print_create_options(create_options):
         print(indent_str + opt + ": " + str(opt_value))
 
 
-def command_status(args):
+def get_cmd_info(args, info_needed):
+    # Highest Priority
+    # ----------------
+    # command arguments
+    # yaml config
+    # pspace last info
+    # command defaults
+    # ----------------
+    # Lowest Priority
+    args_dict = vars(args)
     pspace_last = pspace.get_last_info()
-    job_id = get_job_id(args, pspace_last)
+    cmd_info = {}
+    for (argkey, psection, pkey) in info_needed:
+        cmd_info[argkey] = None
+        try:
+            cmd_info[argkey] = pspace_last[psection][pkey]
+        except KeyError:
+            pass
+        if args_dict[argkey] is not None:
+            cmd_info[argkey] = args_dict[argkey]
+
+    return cmd_info
+
+
+def update_job_info(job_info):
+    """Format job_info values and add new derived ones.
+    """
+    if job_info.get('dtStarted', None) is not None:
+        started_utc = parse_jobinfo_dt(job_info['dtStarted'])
+        started_local = started_utc.astimezone()
+        job_info['Started'] = started_local.strftime("%Y-%m-%d %I:%M:%S%p")
+    if job_info.get('dtFinished', None) is not None:
+        finished_utc = parse_jobinfo_dt(job_info['dtFinished'])
+        finished_local = finished_utc.astimezone()
+        job_info['Finished'] = finished_local.strftime("%Y-%m-%d %I:%M:%S%p")
+    if 'Started' in job_info and 'Finished' in job_info:
+        job_info['Duration'] = str(finished_utc - started_utc)
+    elif job_info['state'] in ['Running',]:
+        job_info['Duration'] = str(datetime.datetime.now(tz=datetime.timezone.utc) - started_utc) + " (to now)"
+    job_info['entrypoint'] = wrap_command_str(job_info['entrypoint'], 79, 4+13)
+
+    return job_info
+
+
+def print_job_status(job_info, print_keys, utc=False):
+    job_info = update_job_info(job_info)
+
+    print(job_info['id'])
+    for key in print_keys:
+        print(" "*4 + key + ": " + str(job_info.get(key, '')))
+
+
+# commands -------------------------------------------------------------------
+
+def command_status(args):
+    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
+    job_id = cmd_info['job_id']
+    if job_id is None:
+        print("Can't determine job id.")
 
     job_info = pspace.get_job_info(job_id)
     pspace.save_last_info(job_info)
 
-    print("Job: " + job_id)
-    print("State: " + job_info['state'])
-
-    if job_info.get('dtStarted', None) is not None:
-        started_utc = parse_jobinfo_dt(job_info['dtStarted'])
-        started_local = started_utc.astimezone()
-        print("Started: " + started_local.strftime("%Y-%m-%d %I:%M:%S%p"))
-
-    if job_info['state'] in ['Stopped', 'Failed', 'Cancelled']:
-        # get finished datetime in local time zone
-        finished_utc = parse_jobinfo_dt(job_info['dtFinished'])
-        finished_local = finished_utc.astimezone()
-        print("Finished: " + finished_local.strftime("%Y-%m-%d %I:%M:%S%p"))
-        print("Duration: " + str(finished_utc - started_utc))
-    else:
-        print("Duration (to now): " + str(datetime.datetime.now(datetime.timezone.utc) - started_utc))
-    if job_info['state'] in ['Stopped', 'Failed']:
-        print("Exit Code: {0}".format(job_info['exitCode']))
+    print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
+    print_job_status(job_info, print_keys)
 
 
 def command_jobs(args):
     kwargs = {}
-    valid_states = ['Pending', 'Provisioned', 'Running', 'Stopped',
-            'Error', 'Failed', 'Cancelled'
-            ]
     if args.state is not None:
         # match any state argument case-insensitively, only first chars are
         #   needed
         state = args.state[0].upper() + args.state[1:]
-        matching_state = [x for x in valid_states if x.startswith(state)][0]
+        matching_state = [x for x in VALID_JOB_STATES if x.startswith(state)][0]
         kwargs['state'] = matching_state
 
     print(kwargs)
@@ -220,13 +285,9 @@ def command_jobs(args):
         job_list = job_list[-args.last:]
 
     print_keys = ['name', 'state', 'entrypoint', 'project', 'dtStarted',
-            'dtFinished', 'exitCode'
-            ]
+            'dtFinished', 'exitCode', 'machineType',]
     for job in job_list:
-        print(job['id'])
-        job['entrypoint'] = wrap_command_str(job['entrypoint'], 79, 4+13)
-        for key in print_keys:
-            print(" "*4 + key + ": " + str(job.get(key, '')))
+        print_job_status(job, print_keys)
 
 
 def command_tail(args):
@@ -237,8 +298,8 @@ def command_tail(args):
         # tail_lines = 0 is special value that indicates show all lines
         tail_lines = 0
 
-    pspace_last = pspace.get_last_info()
-    job_id = get_job_id(args, pspace_last)
+    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
+    job_id = cmd_info['job_id']
 
     line_start = 0
     if tail_lines != 0:
@@ -252,7 +313,7 @@ def command_tail(args):
 
     print("Job: " + job_id)
     print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    if pspace.job_not_started(job_id, job_info) and args.follow:
+    if args.follow and pspace.job_not_started(job_id, job_info):
         # waiting for job to start, updating state while we wait
         while pspace.job_not_started(job_id, job_info):
             time.sleep(5)
@@ -300,27 +361,35 @@ def command_create(args):
     print_create_options(job_config)
 
     job_info = pspace.jobs_create(**job_config)
-    print("Job " + job_info['id'] + " created.")
+    if 'error' in job_info:
+        print("")
+        print("ERROR {0}: {1}".format(job_info['error']['status'], job_info['error']['message']))
+    else:
+        print("Job " + job_info['id'] + " created.")
 
     pspace.save_last_info(job_info)
 
 
 def command_getart(args):
-    pspace_last = pspace.get_last_info()
-    job_id = get_job_id(args, pspace_last)
-    local_data_dir = args.datadir
+    info_needed = [
+            ('job_id', 'job_info', 'id'),
+            ('datadir', 'XXX', 'XXX'),
+            ]
+    cmd_info = get_cmd_info(args, info_needed)
+    job_id = cmd_info['job_id']
+    local_data_dir = cmd_info['datadir']
 
     pspace.get_artifacts(job_id, local_data_dir)
     pspace.save_log(job_id, local_data_dir)
 
 
 def command_stop(args):
-    pspace_last = pspace.get_last_info()
-    job_id = get_job_id(args, pspace_last)
+    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
+    job_id = cmd_info['job_id']
+
     returnval = pspace.stop_job(job_id)
     if not returnval:
         print("Success")
-
 
 
 def main(argv=None):
