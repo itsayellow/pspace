@@ -81,6 +81,8 @@ def jobs_list(**kwargs):
 
 
 def get_log_lines(job_id, line_start=0):
+    # TODO: there is a max number of lines that paperspace.jobs.logs will return
+    #   (default 2000).  We must keep asking for more lines if we get maximum
     params = {
             'jobId': job_id,
             'line': line_start

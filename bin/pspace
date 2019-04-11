@@ -44,18 +44,19 @@ def process_command_line(argv):
     # tail (of job log file)
     parser_tail = subparsers.add_parser('tail', help='get the tail of a job\'s log')
     parser_tail.add_argument(
-            '--job_id', action='store',
+            'job_id', nargs='?',
             help='ID of job to be checked.'
-            )
-    parser_tail.add_argument(
-            '-l', '--last', action='store', type=int,
-            help='Only show the last this many lines.'
             )
     parser_tail.add_argument(
             '-f', '--follow', action='store_true',
             help='Follow the log file until cancelled or PSEOF.'
             )
-    parser_tail.add_argument(
+    group = parser_tail.add_mutually_exclusive_group()
+    group.add_argument(
+            '-l', '--last', action='store', type=int,
+            help='Only show the last this many lines. (default: 20)'
+            )
+    group.add_argument(
             '-a', '--all', action='store_true',
             help='Show all lines of log file.'
             )
@@ -74,14 +75,14 @@ def process_command_line(argv):
     # status
     parser_status = subparsers.add_parser('status', help='get a job\'s status')
     parser_status.add_argument(
-            '--job_id', action='store',
+            'job_id', nargs='?',
             help='ID of job to be checked.'
             )
 
     # getart
     parser_getart = subparsers.add_parser('getart', help='download artifact files from a job')
     parser_getart.add_argument(
-            '--job_id', action='store',
+            'job_id', nargs='?',
             help='ID of job to fetch artifacts for.'
             )
     parser_getart.add_argument(
@@ -92,7 +93,7 @@ def process_command_line(argv):
     # stop
     parser_stop = subparsers.add_parser('stop', help='stop or cancel a job')
     parser_stop.add_argument(
-            '--job_id', action='store',
+            'job_id', nargs='?',
             help='ID of job to fetch artifacts for.'
             )
 
@@ -194,9 +195,12 @@ def command_status(args):
 def command_jobs(args):
     # all datetimes start with dt in job_info (e.g. dtCreated, dtFinished, etc.)
     job_list = pspace.jobs_list()
+    print(job_list)
 
 
 def command_tail(args):
+    # TODO: there is a max number of lines that paperspace.jobs.logs will return
+    #   (default 2000).  We must keep asking for more lines if we get maximum
     tail_lines = args.last or DEFAULT_TAIL_LINES
     if args.all:
         # tail_lines = 0 is special value that indicates show all lines
