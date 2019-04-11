@@ -8,6 +8,7 @@ command-line utility for starting/monitoring paperspace jobs
 # TODO: see if switches make sense (should -s and -l be reserved for short
 #       and long?)
 # TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
+# TODO: always use UTC or always use local (set by switch?)
 
 
 import argparse

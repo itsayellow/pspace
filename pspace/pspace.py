@@ -159,6 +159,12 @@ def get_job_info(job_id):
     return job_info
 
 
+def stop_job(job_id):
+    return paperspace.jobs.stop({'jobId':job_id})
+
+
+# yaml config -----------------------------------------------------------------
+
 def get_config(subcommand, arg_config=None):
     if arg_config is None:
         arg_config = {}
@@ -186,10 +192,6 @@ def get_config(subcommand, arg_config=None):
         job_config[key] = arg_config[key]
 
     return job_config
-
-
-def stop_job(job_id):
-    return paperspace.jobs.stop({'jobId':job_id})
 
 
 # pspace info ----------------------------------------------------------------
