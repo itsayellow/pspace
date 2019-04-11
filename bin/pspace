@@ -122,6 +122,48 @@ def parse_jobinfo_dt(dt_str):
     return dt.replace(tzinfo=datetime.timezone.utc)
 
 
+def wrap_command_str(in_str, max_width, indent):
+    max_width = max_width - len(indent) - len('command:  ')
+    # wrap command list in a good way for commands (split at start of switch)
+    command_list = in_str.split(' -')
+    # after splitting, join as many pieces together that will fit on line
+    new_command_list = []
+    in_start = 0
+    while in_start < len(command_list):
+        in_end = in_start + 1
+        while in_end <= len(command_list):
+            if len(' -'.join(command_list[in_start:in_end])) < max_width:
+                in_end += 1
+            else:
+                in_end -= 1
+                in_end = max(in_start + 1, in_end)
+                break
+        new_command_list.append(' -'.join(command_list[in_start:in_end]))
+        in_start = in_end
+
+    command_str = ""
+    for (i, command_substr) in enumerate(new_command_list):
+        if i == 0:
+            command_str += command_substr + "\n"
+        else:
+            command_str += indent + " "*10 + "-" + command_substr + "\n"
+    return command_str.rstrip()
+
+
+def print_create_options(create_options):
+    indent = " "*4
+
+    command_str = wrap_command_str(create_options['command'], 79, indent)
+
+    for opt in sorted(create_options):
+        if opt=='command':
+            opt_value = command_str
+        else:
+            opt_value = create_options[opt]
+
+        print(indent + opt + ": " + str(opt_value))
+
+
 def command_status(args):
     pspace_last = pspace.get_last_info()
     job_id = get_job_id(args, pspace_last)
@@ -219,13 +261,13 @@ def command_create(args):
     override_args.pop('pspace_cmd')
     job_config = pspace.get_config('create', override_args)
 
-    print(job_config)
+    print('Submitting with options:')
+    print_create_options(job_config)
 
     job_info = pspace.jobs_create(**job_config)
+    print("Job " + job_info['id'] + " created.")
 
     pspace.save_last_info(job_info)
-
-    print("Job " + job_info['id'] + " created.")
 
 
 def command_getart(args):
