@@ -67,6 +67,8 @@ def job_done(job_id, job_info=None):
 
 def jobs_create(**kwargs):
     params = kwargs.copy()
+    if 'project' not in params:
+        params['project'] = pathlib.Path.cwd().name
     params.update({'workspace':'.', 'tail':'false',})
     job_info = paperspace.jobs.create(params, no_logging=True)
     return job_info
