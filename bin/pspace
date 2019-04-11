@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-#
-# Bare bones python template for parsing command-line arguments
+"""
+command-line utility for starting/monitoring paperspace jobs
+    notably can use a yaml file in cwd to specify defaults
+"""
+
+# TODO: runlocal command
+# TODO: see if switches make sense (should -s and -l be reserved for short
+#       and long?)
+# TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
+
 
 import argparse
 import datetime
