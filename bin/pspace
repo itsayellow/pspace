@@ -64,8 +64,8 @@ def process_command_line(argv):
     # jobs
     parser_jobs = subparsers.add_parser('jobs', help='list jobs')
     parser_jobs.add_argument(
-            '-s', '--status', action='store',
-            help='Filter only jobs matching this status.'
+            '-s', '--state', action='store',
+            help='Filter only jobs matching this run state.'
             )
     parser_jobs.add_argument(
             '-l', '--last', action='store', type=int,
@@ -193,9 +193,31 @@ def command_status(args):
 
 
 def command_jobs(args):
-    # all datetimes start with dt in job_info (e.g. dtCreated, dtFinished, etc.)
-    job_list = pspace.jobs_list()
-    print(job_list)
+    kwargs = {}
+    valid_states = ['Pending', 'Provisioned', 'Running', 'Stopped',
+            'Error', 'Failed', 'Cancelled'
+            ]
+    if args.state is not None:
+        # match any state argument case-insensitively, only first chars are
+        #   needed
+        state = args.state[0].upper() + args.state[1:]
+        matching_state = [x for x in valid_states if x.startswith(state)][0]
+        kwargs['state'] = matching_state
+
+    print(kwargs)
+    job_list = pspace.jobs_list(**kwargs)
+    # job_list appears to be in chronological order (first is earliest)
+    if args.last is not None:
+        job_list = job_list[-args.last:]
+
+    print_keys = ['name', 'state', 'entrypoint', 'project', 'dtStarted',
+            'dtFinished', 'exitCode'
+            ]
+    for job in job_list:
+        print(job['id'])
+        job['entrypoint'] = wrap_command_str(job['entrypoint'], 79, 4+13)
+        for key in print_keys:
+            print(" "*4 + key + ": " + str(job.get(key, '')))
 
 
 def command_tail(args):
