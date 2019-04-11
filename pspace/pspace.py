@@ -17,6 +17,8 @@ PSPACE_INFO_DIR = '.pspace'
 PSPACE_CONFIG_FILE = 'pspace.yaml'
 
 
+# all datetimes start with dt in job_info (e.g. dtCreated, dtFinished, etc.)
+#
 # https://paperspace.github.io/paperspace-node/jobs.html#.waitfor
 # job_info['state'] is one of:
 #   Pending - the job has not started setting up on a machine yet
@@ -62,6 +64,7 @@ def job_done(job_id, job_info=None):
     if job_info is None:
         job_info = paperspace.jobs.show({'jobId': job_id})
     return job_info['state'] in ['Stopped', 'Cancelled', 'Failed', 'Error']
+
 
 # pspace main api ------------------------------------------------------------
 
