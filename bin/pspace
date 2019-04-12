@@ -77,6 +77,18 @@ def process_command_line(argv):
             '--machineType', action='store',
             help='What type of remote machine to use.'
             )
+    parser_create.add_argument(
+            '--project', action='store',
+            help='The Paperspace project for the job.'
+            )
+    parser_create.add_argument(
+            '--ignoreFiles', action='store',
+            help='The directories or files to ignore (comma-separated).'
+            )
+    parser_create.add_argument(
+            '--container', action='store',
+            help='The docker container to use.'
+            )
 
     # tail (of job log file)
     parser_tail = subparsers.add_parser('tail', help='get the tail of a job\'s log')
@@ -123,8 +135,8 @@ def process_command_line(argv):
             help='ID of job to fetch artifacts for.'
             )
     parser_getart.add_argument(
-            '--datadir', action='store', default='data',
-            help='Local data directory holding to put job data dir.'
+            '--destdir', action='store', default='data', # TODO: remove default?
+            help='Local data directory to put job data dir.'
             )
 
     # stop
@@ -202,28 +214,51 @@ def print_create_options(create_options):
         print(indent_str + opt + ": " + str(opt_value))
 
 
-def get_cmd_info(args, info_needed):
-    # Highest Priority
-    # ----------------
-    # command arguments
-    # yaml config
-    # pspace last info
-    # command defaults
-    # ----------------
-    # Lowest Priority
-    args_dict = vars(args)
-    pspace_last = pspace.get_last_info()
-    cmd_info = {}
-    for (argkey, psection, pkey) in info_needed:
-        cmd_info[argkey] = None
-        try:
-            cmd_info[argkey] = pspace_last[psection][pkey]
-        except KeyError:
-            pass
-        if args_dict[argkey] is not None:
-            cmd_info[argkey] = args_dict[argkey]
+def get_cmd_config(args, extra_keys=None):
+    if extra_keys is None:
+        extra_keys = []
 
-    return cmd_info
+    # Lowest Priority
+    # ----------------
+    # command defaults
+    # pspace last info
+    # yaml config
+    # command arguments
+    # ----------------
+    # Highest Priority
+
+    args_to_pspacelast = {
+            'job_id': ('job_info', 'id'),
+            'total_log_lines': ('pspace_info', 'total_log_lines'),
+            }
+
+    args_dict = vars(args)
+    cmd = args_dict.pop('pspace_cmd')
+    yaml_config = pspace.get_config(cmd)
+    pspace_last = pspace.get_last_info()
+    cmd_config = {}
+    for argkey in list(args_dict.keys()) + extra_keys:
+        # Default
+        cmd_config[argkey] = None
+
+        # last command
+        if argkey in args_to_pspacelast:
+            (psection, pkey) = args_to_pspacelast[argkey]
+            try:
+                cmd_config[argkey] = pspace_last[psection][pkey]
+            except KeyError:
+                pass
+
+        # YAML
+        if argkey in yaml_config:
+            cmd_config[argkey] = yaml_config[argkey]
+
+        # command arguments
+        if args_dict[argkey] is not None:
+            cmd_config[argkey] = args_dict[argkey]
+
+    print(cmd_config)
+    return cmd_config
 
 
 def update_job_info(job_info):
@@ -257,8 +292,8 @@ def print_job_status(job_info, print_keys, utc=False):
 # commands -------------------------------------------------------------------
 
 def command_status(args):
-    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
-    job_id = cmd_info['job_id']
+    cmd_config = get_cmd_config(args)
+    job_id = cmd_config['job_id']
     if job_id is None:
         print("Can't determine job id.")
 
@@ -270,19 +305,23 @@ def command_status(args):
 
 
 def command_jobs(args):
-    kwargs = {}
-    if args.state is not None:
+    cmd_config = get_cmd_config(args)
+
+    if cmd_config['state'] is not None:
         # match any state argument case-insensitively, only first chars are
         #   needed
-        state = args.state[0].upper() + args.state[1:]
+        state = cmd_config['state'][0].upper() + cmd_config['state'][1:]
         matching_state = [x for x in VALID_JOB_STATES if x.startswith(state)][0]
-        kwargs['state'] = matching_state
+        cmd_config['state'] = matching_state
 
-    print(kwargs)
-    job_list = pspace.jobs_list(**kwargs)
+    print(cmd_config)
+    list_kwargs = cmd_config.copy()
+    list_kwargs.pop('last')
+    print(list_kwargs)
+    job_list = pspace.jobs_list(**list_kwargs)
     # job_list appears to be in chronological order (first is earliest)
-    if args.last is not None:
-        job_list = job_list[-args.last:]
+    if cmd_config['last'] is not None:
+        job_list = job_list[-cmd_config['last']:]
 
     print_keys = ['name', 'state', 'entrypoint', 'project', 'dtStarted',
             'dtFinished', 'exitCode', 'machineType',]
@@ -291,20 +330,21 @@ def command_jobs(args):
 
 
 def command_tail(args):
+    cmd_config = get_cmd_config(args, ['total_log_lines'])
+
     # TODO: there is a max number of lines that paperspace.jobs.logs will return
     #   (default 2000).  We must keep asking for more lines if we get maximum
-    tail_lines = args.last or DEFAULT_TAIL_LINES
-    if args.all:
+    tail_lines = cmd_config['last'] or DEFAULT_TAIL_LINES
+    if cmd_config['all']:
         # tail_lines = 0 is special value that indicates show all lines
         tail_lines = 0
 
-    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
-    job_id = cmd_info['job_id']
+    job_id = cmd_config['job_id']
 
     line_start = 0
     if tail_lines != 0:
         try:
-            last_tot_log_lines = pspace_last['pspace_info']['total_log_lines']
+            last_tot_log_lines = cmd_config['total_log_lines']
             line_start = max(0, last_tot_log_lines - tail_lines)
         except KeyError:
             pass
@@ -313,7 +353,7 @@ def command_tail(args):
 
     print("Job: " + job_id)
     print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    if args.follow and pspace.job_not_started(job_id, job_info):
+    if cmd_config['follow'] and pspace.job_not_started(job_id, job_info):
         # waiting for job to start, updating state while we wait
         while pspace.job_not_started(job_id, job_info):
             time.sleep(5)
@@ -328,11 +368,12 @@ def command_tail(args):
     if pspace.job_started(job_id, job_info):
         log_lines = pspace.get_log_lines(job_id, line_start=line_start)
         total_log_lines = line_start + len(log_lines)
+        # TODO: this should be last line
         pspace.save_last_info(job_info, {'total_log_lines':total_log_lines})
         for line in log_lines[-tail_lines:]:
             print(line)
 
-    if args.follow:
+    if cmd_config['follow']:
         end_time = None
         line_start = len(log_lines) + line_start
         last_log_line = log_lines[-1] if log_lines else ''
@@ -353,17 +394,17 @@ def command_tail(args):
 
 
 def command_create(args):
-    override_args = vars(args)
-    override_args.pop('pspace_cmd')
-    job_config = pspace.get_config('create', override_args)
+    cmd_config = get_cmd_config(args)
 
+    # TODO: figure out project cwd value if project is None here
     print('Submitting with options:')
-    print_create_options(job_config)
+    print_create_options(cmd_config)
 
-    job_info = pspace.jobs_create(**job_config)
+    job_info = pspace.jobs_create(**cmd_config)
     if 'error' in job_info:
+        job_err = job_info['error']
         print("")
-        print("ERROR {0}: {1}".format(job_info['error']['status'], job_info['error']['message']))
+        print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
     else:
         print("Job " + job_info['id'] + " created.")
 
@@ -371,23 +412,16 @@ def command_create(args):
 
 
 def command_getart(args):
-    info_needed = [
-            ('job_id', 'job_info', 'id'),
-            ('datadir', 'XXX', 'XXX'),
-            ]
-    cmd_info = get_cmd_info(args, info_needed)
-    job_id = cmd_info['job_id']
-    local_data_dir = cmd_info['datadir']
+    cmd_config = get_cmd_config(args)
 
-    pspace.get_artifacts(job_id, local_data_dir)
-    pspace.save_log(job_id, local_data_dir)
+    pspace.get_artifacts(cmd_config['job_id'], cmd_config['destdir'])
+    pspace.save_log(cmd_config['job_id'], cmd_config['destdir'])
 
 
 def command_stop(args):
-    cmd_info = get_cmd_info(args, [('job_id', 'job_info', 'id'),])
-    job_id = cmd_info['job_id']
+    cmd_config = get_cmd_config(args)
 
-    returnval = pspace.stop_job(job_id)
+    returnval = pspace.stop_job(cmd_config['job_id'])
     if not returnval:
         print("Success")
 
