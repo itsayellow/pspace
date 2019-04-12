@@ -423,6 +423,7 @@ def command_create(args):
 def command_getart(args):
     cmd_config = get_cmd_config(args)
 
+    print("Retrieving artifacts for job " + cmd_config['job_id'] + " ...")
     pspace.get_artifacts(cmd_config['job_id'], cmd_config['destdir'])
     # TODO: error handling
     pspace.save_log(cmd_config['job_id'], cmd_config['destdir'])
@@ -431,6 +432,7 @@ def command_getart(args):
 def command_stop(args):
     cmd_config = get_cmd_config(args)
 
+    print("Stopping job " + cmd_config['job_id'] + " ...")
     returnval = pspace.stop_job(cmd_config['job_id'])
     if not returnval:
         print("Success")
