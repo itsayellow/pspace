@@ -291,7 +291,6 @@ def print_job_status(job_info, print_keys, utc=False):
 
 def print_error(job_info):
     job_err = job_info['error']
-    print("")
     print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
 
 # commands -------------------------------------------------------------------
