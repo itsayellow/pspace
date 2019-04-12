@@ -151,17 +151,6 @@ def process_command_line(argv):
     return args
 
 
-def get_job_id(args, pspace_last):
-    if args.job_id is not None:
-        job_id = args.job_id
-    else:
-        try:
-            job_id = pspace_last['job_info']['id']
-        except KeyError:
-            return None
-    return job_id
-
-
 def parse_jobinfo_dt(dt_str):
     """From dt string from job_info, return datetime in UTC
     """
@@ -292,6 +281,7 @@ def print_job_status(job_info, print_keys, utc=False):
 def print_error(job_info):
     job_err = job_info['error']
     print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+
 
 # commands -------------------------------------------------------------------
 
