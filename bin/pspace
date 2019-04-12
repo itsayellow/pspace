@@ -13,10 +13,12 @@ command-line utility for starting/monitoring paperspace jobs
 
 import argparse
 import datetime
+import pathlib
 import sys
 import time
 
 import pspace
+import yaml
 
 
 DEFAULT_TAIL_LINES = 20
@@ -24,13 +26,12 @@ VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
         'Error', 'Failed', 'Cancelled']
 CMD_ARG_DEFAULTS = {
         'create':{
-            'command': 'command.sh',
+            'command': 'echo hello world',
             'container': 'tensorflow/tensorflow-python:latest',
             'machineType': 'K80',
-            'ignoreFiles': [],
+            'ignoreFiles': ['ignore1', 'ignore2'],
             },
         'tail':{
-            'job_id': None,
             'follow': False,
             'last': 20,
             'all': False,
@@ -39,14 +40,8 @@ CMD_ARG_DEFAULTS = {
             'state': None,
             'last': None,
             },
-        'status':{
-            'job_id': None,
-            },
         'getart':{
-            'datadir': 'data',
-            },
-        'stop':{
-            'job_id': None,
+            'destdir': 'data',
             },
         }
 
@@ -145,6 +140,9 @@ def process_command_line(argv):
             'job_id', nargs='?',
             help='ID of job to stop.'
             )
+
+    # newyaml
+    parser_stop = subparsers.add_parser('newyaml', help='create new yaml config file from defaults')
 
     args = parser.parse_args(argv)
 
@@ -284,6 +282,14 @@ def print_error(job_info):
 
 
 # commands -------------------------------------------------------------------
+
+def command_newyaml(args):
+    yaml_path = pathlib.Path('pspace.yaml')
+    if yaml_path.exists():
+        yaml_path.rename('pspace.yaml.bak')
+    with yaml_path.open('w') as yaml_fh:
+        yaml.dump(CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
+
 
 def command_status(args):
     cmd_config = get_cmd_config(args)
@@ -444,6 +450,8 @@ def main(argv=None):
         command_getart(args)
     elif args.pspace_cmd == 'stop':
         command_stop(args)
+    elif args.pspace_cmd == 'newyaml':
+        command_newyaml(args)
 
     return 0
 
