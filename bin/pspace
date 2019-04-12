@@ -289,6 +289,11 @@ def print_job_status(job_info, print_keys, utc=False):
         print(" "*4 + key + ": " + str(job_info.get(key, '')))
 
 
+def print_error(job_info):
+    job_err = job_info['error']
+    print("")
+    print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+
 # commands -------------------------------------------------------------------
 
 def command_status(args):
@@ -300,10 +305,9 @@ def command_status(args):
 
     job_info = pspace.get_job_info(job_id)
     if 'error' in job_info:
-        job_err = job_info['error']
-        print("")
-        print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+        print_error(job_info)
         return
+
     pspace.save_last_info(job_info)
 
     print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
@@ -333,6 +337,7 @@ def command_jobs(args):
         print_job_status(job, print_keys)
 
 
+# TODO: command_tail really needs to be cleaned up!
 def command_tail(args):
     cmd_config = get_cmd_config(args, ['total_log_lines'])
 
@@ -352,6 +357,9 @@ def command_tail(args):
             line_start = max(0, last_tot_log_lines - tail_lines)
 
     job_info = pspace.get_job_info(job_id)
+    if 'error' in job_info:
+        print_error(job_info)
+        return
 
     print("Job: " + job_id)
     print("State: " + job_info['state'] + " "*10, end="", flush=True)
@@ -404,9 +412,7 @@ def command_create(args):
 
     job_info = pspace.jobs_create(**cmd_config)
     if 'error' in job_info:
-        job_err = job_info['error']
-        print("")
-        print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+        print_error(job_info)
         return
     else:
         print("Job " + job_info['id'] + " created.")
