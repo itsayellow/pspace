@@ -424,6 +424,7 @@ def command_getart(args):
     cmd_config = get_cmd_config(args)
 
     pspace.get_artifacts(cmd_config['job_id'], cmd_config['destdir'])
+    # TODO: error handling
     pspace.save_log(cmd_config['job_id'], cmd_config['destdir'])
 
 
@@ -433,6 +434,8 @@ def command_stop(args):
     returnval = pspace.stop_job(cmd_config['job_id'])
     if not returnval:
         print("Success")
+    else:
+        print_error(returnval)
 
 
 def main(argv=None):
