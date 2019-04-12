@@ -105,6 +105,7 @@ def get_log_lines(job_id, line_start=0):
 def get_artifacts(job_id, local_data_dir):
     """Put artifact files/dirs in local_data_dir / job_id
     """
+    # TODO: maybe make this command quiet and make our own progress?
     local_data_path = pathlib.Path(local_data_dir)
     dest_path = local_data_path / job_id
     dest_path.mkdir(parents=True, exist_ok=True)

@@ -254,10 +254,10 @@ def get_cmd_config(args, extra_keys=None):
             cmd_config[argkey] = yaml_config[argkey]
 
         # command arguments
-        if args_dict[argkey] is not None:
-            cmd_config[argkey] = args_dict[argkey]
+        if argkey in args_dict:
+            if args_dict[argkey] is not None:
+                cmd_config[argkey] = args_dict[argkey]
 
-    print(cmd_config)
     return cmd_config
 
 
@@ -295,9 +295,15 @@ def command_status(args):
     cmd_config = get_cmd_config(args)
     job_id = cmd_config['job_id']
     if job_id is None:
-        print("Can't determine job id.")
+        print("Cannot determine job id.")
+        return
 
     job_info = pspace.get_job_info(job_id)
+    if 'error' in job_info:
+        job_err = job_info['error']
+        print("")
+        print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+        return
     pspace.save_last_info(job_info)
 
     print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
@@ -314,10 +320,8 @@ def command_jobs(args):
         matching_state = [x for x in VALID_JOB_STATES if x.startswith(state)][0]
         cmd_config['state'] = matching_state
 
-    print(cmd_config)
     list_kwargs = cmd_config.copy()
     list_kwargs.pop('last')
-    print(list_kwargs)
     job_list = pspace.jobs_list(**list_kwargs)
     # job_list appears to be in chronological order (first is earliest)
     if cmd_config['last'] is not None:
@@ -343,11 +347,9 @@ def command_tail(args):
 
     line_start = 0
     if tail_lines != 0:
-        try:
-            last_tot_log_lines = cmd_config['total_log_lines']
+        last_tot_log_lines = cmd_config['total_log_lines']
+        if last_tot_log_lines is not None:
             line_start = max(0, last_tot_log_lines - tail_lines)
-        except KeyError:
-            pass
 
     job_info = pspace.get_job_info(job_id)
 
@@ -405,6 +407,7 @@ def command_create(args):
         job_err = job_info['error']
         print("")
         print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
+        return
     else:
         print("Job " + job_info['id'] + " created.")
 
