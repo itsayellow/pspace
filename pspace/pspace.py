@@ -86,19 +86,24 @@ def jobs_list(**kwargs):
 
 
 def get_log_lines(job_id, line_start=0):
-    # TODO: there is a max number of lines that paperspace.jobs.logs will return
-    #   (default 2000).  We must keep asking for more lines if we get maximum
-    params = {
-            'jobId': job_id,
-            'line': line_start
-            }
-    log_output = paperspace.jobs.logs(params, no_logging=True)
+    # Keep asking for more log lines until we receive none, in case we hit
+    #   max number of lines that paperspace.jobs.logs will return at once
+    #   (default 2000).
+    more_log_lines = True
+    log_output = []
+    while more_log_lines:
+        params = {'jobId': job_id, 'line': line_start}
+        new_log_output = paperspace.jobs.logs(params, no_logging=True)
+        log_output.extend(new_log_output)
+        more_log_lines = bool(new_log_output)
+        line_start += len(new_log_output)
     # log_output is list of dicts, each dict:
     #   {
     #       'line':<int, line number>
     #       'timestamp':<str, time in UTC>,
     #       'message':<str, line of log output>,
     #   }
+    # TODO: some of that info might be useful, return it?
     return [x['message'] for x in log_output]
 
 
