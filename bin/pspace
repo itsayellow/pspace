@@ -153,7 +153,7 @@ def process_command_line(argv):
     return args
 
 
-def parse_jobinfo_dt(dt_in_str, utc=False):
+def parse_jobinfo_dt(dt_in_str, utc_str=False):
     """From dt string from job_info, return datetime in UTC
     """
     dt = datetime.datetime.strptime(
@@ -161,11 +161,11 @@ def parse_jobinfo_dt(dt_in_str, utc=False):
                 )
     dt_utc = dt.replace(tzinfo=datetime.timezone.utc)
 
-    if utc:
-        dt_out_str = dt_utc.strftime("%Y-%m-%d %I:%M:%S%p")
+    if utc_str:
+        dt_out_str = dt_utc.strftime("%Y-%m-%d %I:%M:%S%p") + " UTC"
     else:
         dt_local = dt_utc.astimezone()
-        dt_out_str = dt_local.strftime("%Y-%m-%d %I:%M:%S%p")
+        dt_out_str = dt_local.strftime("%Y-%m-%d %I:%M:%S%p") + " " + dt_local.tzname()
 
     return (dt_utc, dt_out_str)
 
@@ -261,13 +261,13 @@ def get_cmd_config(args, extra_keys=None):
     return cmd_config
 
 
-def update_job_info(job_info, later_indent, utc=False):
+def update_job_info(job_info, later_indent, utc_str=False):
     """Format job_info values and add new derived ones.
     """
     if job_info.get('dtStarted', None) is not None:
-        (started_utc, job_info['Started']) = parse_jobinfo_dt(job_info['dtStarted'], utc=utc)
+        (started_utc, job_info['Started']) = parse_jobinfo_dt(job_info['dtStarted'], utc_str=utc_str)
     if job_info.get('dtFinished', None) is not None:
-        (finished_utc, job_info['Finished']) = parse_jobinfo_dt(job_info['dtFinished'], utc=utc)
+        (finished_utc, job_info['Finished']) = parse_jobinfo_dt(job_info['dtFinished'], utc_str=utc_str)
     if 'Started' in job_info and 'Finished' in job_info:
         job_info['Duration'] = str(finished_utc - started_utc)
     elif job_info['state'] in ['Running',]:
@@ -277,9 +277,9 @@ def update_job_info(job_info, later_indent, utc=False):
     return job_info
 
 
-def print_job_status(job_info, print_keys, utc=False):
+def print_job_status(job_info, print_keys, utc_str=False):
     max_key_len = max([len(x) for x in print_keys])
-    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc=utc)
+    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc_str=utc_str)
 
     print(job_info['id'])
     for key in print_keys:
@@ -317,7 +317,7 @@ def command_status(args):
     pspace.save_last_info(job_info)
 
     print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
-    print_job_status(job_info, print_keys, utc=False)
+    print_job_status(job_info, print_keys, utc_str=False)
 
 
 def command_jobs(args):
@@ -343,7 +343,7 @@ def command_jobs(args):
     for job in job_list:
         if not first:
             print("")
-        print_job_status(job, print_keys, utc=False)
+        print_job_status(job, print_keys, utc_str=False)
         first = False
 
 
@@ -394,13 +394,14 @@ def command_tail(args):
             print(line)
 
     if cmd_config['follow']:
+        # TODO: move this to pspace.py and use that function
         end_time = None
         line_start = len(log_lines) + line_start
         last_log_line = log_lines[-1] if log_lines else ''
         while last_log_line != "PSEOF":
             job_info = pspace.get_job_info(job_id)
             if pspace.job_done(job_id, job_info):
-                finished_utc = parse_jobinfo_dt(job_info['dtFinished'])
+                (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
                 if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
                     break
 
