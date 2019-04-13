@@ -229,6 +229,7 @@ def get_cmd_config(args, extra_keys=None):
     args_to_pspacelast = {
             'job_id': ('job_info', 'id'),
             'total_log_lines': ('pspace_info', 'total_log_lines'),
+            'last_job_id': ('pspace_info', 'last_job_id'),
             }
 
     args_dict = vars(args)
@@ -237,7 +238,7 @@ def get_cmd_config(args, extra_keys=None):
     pspace_last = pspace.get_last_info()
     cmd_config = {}
     for argkey in list(args_dict.keys()) + extra_keys:
-        # Default
+        # Default to CMD_ARG_DEFAULTS value or None
         cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None) 
 
         # last command
@@ -348,15 +349,13 @@ def command_jobs(args):
 
 # TODO: command_tail really needs to be cleaned up!
 def command_tail(args):
-    cmd_config = get_cmd_config(args, ['total_log_lines'])
+    cmd_config = get_cmd_config(args, ['total_log_lines', 'last_job_id'])
 
     # --all takes precedence over --last (also so default of last doesn't
     #   interfere with arg --all)
     if cmd_config['all']:
         cmd_config['last'] = None
 
-    # TODO: there is a max number of lines that paperspace.jobs.logs will return
-    #   (default 2000).  We must keep asking for more lines if we get maximum
     tail_lines = cmd_config['last']
     if cmd_config['all']:
         # tail_lines = 0 is special value that indicates show all lines
@@ -366,9 +365,8 @@ def command_tail(args):
 
     line_start = 0
     if tail_lines != 0:
-        last_tot_log_lines = cmd_config['total_log_lines']
-        if last_tot_log_lines is not None:
-            line_start = max(0, last_tot_log_lines - tail_lines)
+        if (cmd_config['total_log_lines'] is not None) and (cmd_config['last_job_id'] == job_id):
+            line_start = max(0, cmd_config['total_log_lines'] - tail_lines)
 
     job_info = pspace.get_job_info(job_id)
     if 'error' in job_info:
@@ -388,7 +386,7 @@ def command_tail(args):
                 print("State: " + job_info['state'] + " "*10, end="", flush=True)
     print("")
 
-    # so we don't print log lines if the old status says something before Running
+    # check job_started with old job_info so log_lines matches reported status
     if pspace.job_started(job_id, job_info):
         log_lines = pspace.get_log_lines(job_id, line_start=line_start)
         total_log_lines = line_start + len(log_lines)
@@ -414,7 +412,11 @@ def command_tail(args):
             for line in log_lines[-tail_lines:]:
                 print(line)
 
-    pspace.save_last_info(job_info, {'total_log_lines':total_log_lines})
+    extra_save_info = {
+            'total_log_lines':total_log_lines,
+            'last_job_id':job_id,
+            }
+    pspace.save_last_info(job_info, extra_save_info)
 
 
 def command_create(args):
