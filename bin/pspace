@@ -373,8 +373,6 @@ def command_tail(args):
     if pspace.job_started(job_id, job_info):
         log_lines = pspace.get_log_lines(job_id, line_start=line_start)
         total_log_lines = line_start + len(log_lines)
-        # TODO: this should be last line
-        pspace.save_last_info(job_info, {'total_log_lines':total_log_lines})
         for line in log_lines[-tail_lines:]:
             print(line)
 
@@ -396,6 +394,8 @@ def command_tail(args):
             last_log_line = log_lines[-1] if log_lines else last_log_line
             for line in log_lines[-tail_lines:]:
                 print(line)
+
+    pspace.save_last_info(job_info, {'total_log_lines':total_log_lines})
 
 
 def command_create(args):
