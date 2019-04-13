@@ -260,7 +260,7 @@ def get_cmd_config(args, extra_keys=None):
     return cmd_config
 
 
-def update_job_info(job_info, utc=False):
+def update_job_info(job_info, later_indent, utc=False):
     """Format job_info values and add new derived ones.
     """
     if job_info.get('dtStarted', None) is not None:
@@ -271,16 +271,16 @@ def update_job_info(job_info, utc=False):
         job_info['Duration'] = str(finished_utc - started_utc)
     elif job_info['state'] in ['Running',]:
         job_info['Duration'] = str(datetime.datetime.now(tz=datetime.timezone.utc) - started_utc) + " (to now)"
-    job_info['entrypoint'] = wrap_command_str(job_info['entrypoint'], 79, 4+13)
+    job_info['entrypoint'] = wrap_command_str(job_info['entrypoint'], 79, later_indent)
 
     return job_info
 
 
 def print_job_status(job_info, print_keys, utc=False):
-    job_info = update_job_info(job_info, utc=utc)
+    max_key_len = max([len(x) for x in print_keys])
+    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc=utc)
 
     print(job_info['id'])
-    max_key_len = max([len(x) for x in print_keys])
     for key in print_keys:
         post_key = " "*(max_key_len - len(key))
         print(" "*3 + key + post_key + ": " + str(job_info.get(key, '')))
