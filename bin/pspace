@@ -21,7 +21,6 @@ import pspace
 import yaml
 
 
-DEFAULT_TAIL_LINES = 20
 VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
         'Error', 'Failed', 'Cancelled']
 CMD_ARG_DEFAULTS = {
@@ -135,8 +134,8 @@ def process_command_line(argv):
             help='ID of job to fetch artifacts for.'
             )
     parser_getart.add_argument(
-            '--destdir', action='store', default='data', # TODO: remove default?
-            help='Local data directory to put job data dir.'
+            '--destdir', action='store',
+            help='Local data directory to put job data dir. (default: data)'
             )
 
     # stop
@@ -231,7 +230,8 @@ def get_cmd_config(args, extra_keys=None):
     cmd_config = {}
     for argkey in list(args_dict.keys()) + extra_keys:
         # Default
-        cmd_config[argkey] = None
+        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None) 
+        print(cmd_config)
 
         # last command
         if argkey in args_to_pspacelast:
@@ -241,15 +241,18 @@ def get_cmd_config(args, extra_keys=None):
             except KeyError:
                 pass
 
+        print(cmd_config)
         # YAML
         if argkey in yaml_config:
             cmd_config[argkey] = yaml_config[argkey]
 
+        print(cmd_config)
         # command arguments
         if argkey in args_dict:
             if args_dict[argkey] is not None:
                 cmd_config[argkey] = args_dict[argkey]
 
+    print(cmd_config)
     return cmd_config
 
 
@@ -331,8 +334,8 @@ def command_jobs(args):
     if cmd_config['last'] is not None:
         job_list = job_list[-cmd_config['last']:]
 
-    print_keys = ['name', 'state', 'entrypoint', 'project', 'dtStarted',
-            'dtFinished', 'exitCode', 'machineType',]
+    print_keys = ['name', 'state', 'entrypoint', 'project', 'Started',
+            'Finished', 'exitCode', 'machineType',]
     for job in job_list:
         print_job_status(job, print_keys)
 
@@ -341,9 +344,14 @@ def command_jobs(args):
 def command_tail(args):
     cmd_config = get_cmd_config(args, ['total_log_lines'])
 
+    # --all takes precedence over --last (also so default of last doesn't
+    #   interfere with arg --all)
+    if cmd_config['all']:
+        cmd_config['last'] = None
+
     # TODO: there is a max number of lines that paperspace.jobs.logs will return
     #   (default 2000).  We must keep asking for more lines if we get maximum
-    tail_lines = cmd_config['last'] or DEFAULT_TAIL_LINES
+    tail_lines = cmd_config['last']
     if cmd_config['all']:
         # tail_lines = 0 is special value that indicates show all lines
         tail_lines = 0
