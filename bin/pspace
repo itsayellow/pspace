@@ -239,7 +239,6 @@ def get_cmd_config(args, extra_keys=None):
     for argkey in list(args_dict.keys()) + extra_keys:
         # Default
         cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None) 
-        print(cmd_config)
 
         # last command
         if argkey in args_to_pspacelast:
@@ -249,18 +248,15 @@ def get_cmd_config(args, extra_keys=None):
             except KeyError:
                 pass
 
-        print(cmd_config)
         # YAML
         if argkey in yaml_config:
             cmd_config[argkey] = yaml_config[argkey]
 
-        print(cmd_config)
         # command arguments
         if argkey in args_dict:
             if args_dict[argkey] is not None:
                 cmd_config[argkey] = args_dict[argkey]
 
-    print(cmd_config)
     return cmd_config
 
 
@@ -342,8 +338,12 @@ def command_jobs(args):
 
     print_keys = ['name', 'state', 'entrypoint', 'project', 'Started',
             'Finished', 'exitCode', 'machineType',]
+    first = True
     for job in job_list:
+        if not first:
+            print("")
         print_job_status(job, print_keys, utc=False)
+        first = False
 
 
 # TODO: command_tail really needs to be cleaned up!
