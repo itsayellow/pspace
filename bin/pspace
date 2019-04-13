@@ -23,6 +23,7 @@ import yaml
 
 VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
         'Error', 'Failed', 'Cancelled']
+# Any default not listed here will show up as None
 CMD_ARG_DEFAULTS = {
         'create':{
             'command': 'echo hello world',
@@ -34,11 +35,6 @@ CMD_ARG_DEFAULTS = {
             'follow': False,
             'last': 20,
             'all': False,
-            },
-        'jobs':{
-            'project': None,
-            'state': None,
-            'last': None,
             },
         'getart':{
             'destdir': 'data',
