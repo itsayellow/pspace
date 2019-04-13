@@ -221,7 +221,7 @@ def get_cmd_config(args, extra_keys=None):
 
     args_dict = vars(args)
     cmd = args_dict.pop('pspace_cmd')
-    yaml_config = pspace.get_config(cmd)
+    yaml_config = pspace.get_yaml_config(cmd)
     pspace_last = pspace.get_last_info()
     cmd_config = {}
     for argkey in list(args_dict.keys()) + extra_keys:

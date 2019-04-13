@@ -166,33 +166,17 @@ def stop_job(job_id):
 
 # yaml config -----------------------------------------------------------------
 
-def get_config(subcommand, arg_config=None):
-    if arg_config is None:
-        arg_config = {}
-    arg_config = {x:arg_config[x] for x in arg_config if arg_config[x] is not None}
+def get_yaml_config(subcommand):
+    try:
+        with open(PSPACE_CONFIG_FILE, 'r') as yaml_fh:
+            yaml_config = yaml.safe_load(yaml_fh)
+    except IOError:
+        yaml_config = {}
 
-    ## TODO: not use default config?
-    #default_config = {
-    #        'create': {
-    #            'command': './cmd_paperspace.sh',
-    #            'machineType': 'K80',
-    #            'container': 'itsayellow/tensorflow-python:latest',
-    #            'ignoreFiles': ['virt'],
-    #            'local_data_dir': 'data',
-    #            'project': None
-    #            }
-    #        }
-    with open(PSPACE_CONFIG_FILE, 'r') as yaml_fh:
-        yaml_config = yaml.safe_load(yaml_fh)
-
-    # job_config is only subtree config[subcommand]
-    #job_config = copy.deepcopy(default_config[subcommand])
     job_config = {}
     if subcommand in yaml_config:
         for key in yaml_config[subcommand]:
             job_config[key] = yaml_config[subcommand][key]
-    for key in arg_config:
-        job_config[key] = arg_config[key]
 
     return job_config
 
@@ -226,6 +210,6 @@ def get_last_info():
             info = yaml.safe_load(pspace_job_info_fh)
     except IOError:
         #print("Can't find pspace info for last job.")
-        info = None
+        info = {}
 
     return info
