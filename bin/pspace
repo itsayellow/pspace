@@ -4,7 +4,7 @@ command-line utility for starting/monitoring paperspace jobs
     notably can use a yaml file in cwd to specify defaults
 """
 
-# TODO: runlocal command
+# TODO: Should we only make a .pspace dir if a pspace.yaml file exists?
 # TODO: see if switches make sense (should -s and -l be reserved for short
 #       and long?)
 # TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
