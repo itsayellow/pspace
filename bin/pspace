@@ -423,7 +423,9 @@ def command_tail(args):
 def command_create(args):
     cmd_config = get_cmd_config(args)
 
-    # TODO: figure out project cwd value if project is None here
+    if cmd_config['project'] is None:
+        cmd_config['project'] = pathlib.Path.cwd().name
+
     print('Submitting with options:')
     print_create_options(cmd_config)
 
