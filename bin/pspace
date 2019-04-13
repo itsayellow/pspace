@@ -37,6 +37,7 @@ CMD_ARG_DEFAULTS = {
             'all': False,
             },
         'jobs':{
+            'project': None,
             'state': None,
             'last': None,
             },
@@ -107,6 +108,10 @@ def process_command_line(argv):
 
     # jobs
     parser_jobs = subparsers.add_parser('jobs', help='list jobs')
+    parser_jobs.add_argument(
+            '-p', '--project', action='store',
+            help='Filter only jobs matching this project.'
+            )
     parser_jobs.add_argument(
             '-s', '--state', action='store',
             help='Filter only jobs matching this run state.'
