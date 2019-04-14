@@ -23,23 +23,6 @@ import yaml
 
 VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
         'Error', 'Failed', 'Cancelled']
-# Any default not listed here will show up as None
-CMD_ARG_DEFAULTS = {
-        'create':{
-            'command': 'echo hello world',
-            'container': 'tensorflow/tensorflow-python:latest',
-            'machineType': 'K80',
-            'ignoreFiles': ['ignore1', 'ignore2'],
-            },
-        'tail':{
-            'follow': False,
-            'last': 20,
-            'all': False,
-            },
-        'getart':{
-            'destdir': 'data',
-            },
-        }
 
 def process_command_line(argv):
     """Process command line invocation arguments and switches.
@@ -149,145 +132,6 @@ def process_command_line(argv):
     return args
 
 
-def parse_jobinfo_dt(dt_in_str, utc_str=False):
-    """From dt string from job_info, return datetime in UTC
-    """
-    dt = datetime.datetime.strptime(
-                dt_in_str[:-5], "%Y-%m-%dT%H:%M:%S"
-                )
-    dt_utc = dt.replace(tzinfo=datetime.timezone.utc)
-
-    if utc_str:
-        dt_out_str = dt_utc.strftime("%Y-%m-%d %I:%M:%S%p") + " UTC"
-    else:
-        dt_local = dt_utc.astimezone()
-        dt_out_str = dt_local.strftime("%Y-%m-%d %I:%M:%S%p") + " " + dt_local.tzname()
-
-    return (dt_utc, dt_out_str)
-
-
-def wrap_command_str(in_str, max_width, indent):
-    max_width = max_width - indent
-    # wrap command list in a good way for commands (split at start of switch)
-    command_list = in_str.split(' -')
-    # after splitting, join as many pieces together that will fit on line
-    new_command_list = []
-    in_start = 0
-    while in_start < len(command_list):
-        in_end = in_start + 1
-        while in_end <= len(command_list):
-            if len(' -'.join(command_list[in_start:in_end])) < max_width:
-                in_end += 1
-            else:
-                in_end -= 1
-                in_end = max(in_start + 1, in_end)
-                break
-        new_command_list.append(' -'.join(command_list[in_start:in_end]))
-        in_start = in_end
-
-    command_str = ""
-    for (i, command_substr) in enumerate(new_command_list):
-        if i == 0:
-            command_str += command_substr + "\n"
-        else:
-            command_str += " "*indent + "-" + command_substr + "\n"
-    return command_str.rstrip()
-
-
-def print_create_options(create_options):
-    indent_str = " "*4
-    indent = 4 + len('command:  ')
-
-    command_str = wrap_command_str(create_options['command'], 79, indent)
-
-    for opt in sorted(create_options):
-        if opt=='command':
-            opt_value = command_str
-        else:
-            opt_value = create_options[opt]
-
-        print(indent_str + opt + ": " + str(opt_value))
-
-
-def get_cmd_config(args, extra_keys=None):
-    if extra_keys is None:
-        extra_keys = []
-
-    # Lowest Priority
-    # ----------------
-    # command defaults
-    # pspace last info
-    # yaml config
-    # command arguments
-    # ----------------
-    # Highest Priority
-
-    args_to_pspacelast = {
-            'job_id': ('job_info', 'id'),
-            'total_log_lines': ('pspace_info', 'total_log_lines'),
-            'last_job_id': ('pspace_info', 'last_job_id'),
-            }
-
-    args_dict = vars(args)
-    cmd = args_dict.pop('pspace_cmd')
-    yaml_config = pspace.get_yaml_config(cmd)
-    pspace_last = pspace.get_last_info()
-    cmd_config = {}
-    for argkey in list(args_dict.keys()) + extra_keys:
-        # Default to CMD_ARG_DEFAULTS value or None
-        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None) 
-
-        # last command
-        if argkey in args_to_pspacelast:
-            (psection, pkey) = args_to_pspacelast[argkey]
-            try:
-                cmd_config[argkey] = pspace_last[psection][pkey]
-            except KeyError:
-                pass
-
-        # YAML
-        if argkey in yaml_config:
-            cmd_config[argkey] = yaml_config[argkey]
-
-        # command arguments
-        if argkey in args_dict:
-            if args_dict[argkey] is not None:
-                cmd_config[argkey] = args_dict[argkey]
-
-    return cmd_config
-
-
-def update_job_info(job_info, later_indent, utc_str=False):
-    """Format job_info values and add new derived ones.
-    """
-    if job_info.get('dtStarted', None) is not None:
-        (started_utc, job_info['Started']) = parse_jobinfo_dt(job_info['dtStarted'], utc_str=utc_str)
-    if job_info.get('dtFinished', None) is not None:
-        (finished_utc, job_info['Finished']) = parse_jobinfo_dt(job_info['dtFinished'], utc_str=utc_str)
-    if 'Started' in job_info and 'Finished' in job_info:
-        job_info['Duration'] = str(finished_utc - started_utc)
-    elif job_info['state'] in ['Running',]:
-        job_info['Duration'] = str(datetime.datetime.now(tz=datetime.timezone.utc) - started_utc) + " (to now)"
-    job_info['entrypoint'] = wrap_command_str(job_info['entrypoint'], 79, later_indent)
-
-    return job_info
-
-
-def print_job_status(job_info, print_keys, utc_str=False):
-    max_key_len = max([len(x) for x in print_keys])
-    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc_str=utc_str)
-
-    print(job_info['id'])
-    for key in print_keys:
-        post_key = " "*(max_key_len - len(key))
-        print(" "*3 + key + post_key + ": " + str(job_info.get(key, '')))
-
-
-def print_error(job_info):
-    job_err = job_info['error']
-    print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
-
-
 # commands -------------------------------------------------------------------
 
 def command_newyaml(args):
@@ -295,11 +139,11 @@ def command_newyaml(args):
     if yaml_path.exists():
         yaml_path.rename('pspace.yaml.bak')
     with yaml_path.open('w') as yaml_fh:
-        yaml.dump(CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
+        yaml.dump(pspace.CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
 
 
 def command_status(args):
-    cmd_config = get_cmd_config(args)
+    cmd_config = pspace.get_cmd_config(args)
     job_id = cmd_config['job_id']
     if job_id is None:
         print("Cannot determine job id.")
@@ -307,17 +151,17 @@ def command_status(args):
 
     job_info = pspace.get_job_info(job_id)
     if 'error' in job_info:
-        print_error(job_info)
+        pspace.print_error(job_info)
         return
 
     pspace.save_last_info(job_info)
 
     print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
-    print_job_status(job_info, print_keys, utc_str=False)
+    pspace.print_job_status(job_info, print_keys, utc_str=False)
 
 
 def command_jobs(args):
-    cmd_config = get_cmd_config(args)
+    cmd_config = pspace.get_cmd_config(args)
 
     if cmd_config['state'] is not None:
         # match any state argument case-insensitively, only first chars are
@@ -339,13 +183,13 @@ def command_jobs(args):
     for job in job_list:
         if not first:
             print("")
-        print_job_status(job, print_keys, utc_str=False)
+        pspace.print_job_status(job, print_keys, utc_str=False)
         first = False
 
 
 # TODO: command_tail really needs to be cleaned up!
 def command_tail(args):
-    cmd_config = get_cmd_config(args, ['total_log_lines', 'last_job_id'])
+    cmd_config = pspace.get_cmd_config(args, ['total_log_lines', 'last_job_id'])
 
     # --all takes precedence over --last (also so default of last doesn't
     #   interfere with arg --all)
@@ -366,7 +210,7 @@ def command_tail(args):
 
     job_info = pspace.get_job_info(job_id)
     if 'error' in job_info:
-        print_error(job_info)
+        pspace.print_error(job_info)
         return
 
     print("Job: " + job_id)
@@ -397,7 +241,7 @@ def command_tail(args):
         while last_log_line != "PSEOF":
             job_info = pspace.get_job_info(job_id)
             if pspace.job_done(job_id, job_info):
-                (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
+                (finished_utc, _) = pspace.parse_jobinfo_dt(job_info['dtFinished'])
                 if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
                     break
 
@@ -417,7 +261,7 @@ def command_tail(args):
 
 
 def command_create(args):
-    cmd_config = get_cmd_config(args)
+    cmd_config = pspace.get_cmd_config(args)
 
     if cmd_config['project'] is None:
         cmd_config['project'] = pathlib.Path.cwd().name
@@ -427,7 +271,7 @@ def command_create(args):
 
     job_info = pspace.jobs_create(**cmd_config)
     if 'error' in job_info:
-        print_error(job_info)
+        pspace.print_error(job_info)
         return
     else:
         print("Job " + job_info['id'] + " created.")
@@ -436,7 +280,7 @@ def command_create(args):
 
 
 def command_getart(args):
-    cmd_config = get_cmd_config(args)
+    cmd_config = pspace.get_cmd_config(args)
 
     print("Retrieving artifacts for job " + cmd_config['job_id'] + " ...")
     pspace.get_artifacts(cmd_config['job_id'], cmd_config['destdir'])
@@ -445,14 +289,14 @@ def command_getart(args):
 
 
 def command_stop(args):
-    cmd_config = get_cmd_config(args)
+    cmd_config = pspace.get_cmd_config(args)
 
     print("Stopping job " + cmd_config['job_id'] + " ...")
     returnval = pspace.stop_job(cmd_config['job_id'])
     if not returnval:
         print("Success")
     else:
-        print_error(returnval)
+        pspace.print_error(returnval)
 
 
 def main(argv=None):
