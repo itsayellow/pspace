@@ -187,7 +187,6 @@ def command_jobs(args):
         first = False
 
 
-# TODO: command_tail really needs to be cleaned up!
 def command_tail(args):
     cmd_config = pspace.get_cmd_config(args, ['total_log_lines', 'last_job_id'])
 
@@ -202,62 +201,27 @@ def command_tail(args):
         tail_lines = 0
 
     job_id = cmd_config['job_id']
+    if job_id is None:
+        print("Cannot determine job id.")
+        return
 
     line_start = 0
     if tail_lines != 0:
         if (cmd_config['total_log_lines'] is not None) and (cmd_config['last_job_id'] == job_id):
             line_start = max(0, cmd_config['total_log_lines'] - tail_lines)
 
-    job_info = pspace.get_job_info(job_id)
-    if 'error' in job_info:
-        pspace.print_error(job_info)
-        return
-
-    print("Job: " + job_id)
-    print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    if cmd_config['follow'] and pspace.job_not_started(job_id, job_info):
-        # waiting for job to start, updating state while we wait
-        while pspace.job_not_started(job_id, job_info):
-            time.sleep(5)
-            last_state = job_info['state']
-            job_info = pspace.get_job_info(job_id)
-            if job_info['state'] != last_state:
-                print("\r", end="", flush=True)
-                print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    print("")
-
-    # check job_started with old job_info so log_lines matches reported status
-    if pspace.job_started(job_id, job_info):
-        log_lines = pspace.get_log_lines(job_id, line_start=line_start)
-        total_log_lines = line_start + len(log_lines)
-        for line in log_lines[-tail_lines:]:
-            print(line)
-
-    if cmd_config['follow']:
-        # TODO: move this to pspace.py and use that function
-        end_time = None
-        line_start = len(log_lines) + line_start
-        last_log_line = log_lines[-1] if log_lines else ''
-        while last_log_line != "PSEOF":
-            job_info = pspace.get_job_info(job_id)
-            if pspace.job_done(job_id, job_info):
-                (finished_utc, _) = pspace.parse_jobinfo_dt(job_info['dtFinished'])
-                if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
-                    break
-
-            time.sleep(5)
-
-            log_lines = pspace.get_log_lines(job_id, line_start=line_start)
-            line_start += len(log_lines)
-            last_log_line = log_lines[-1] if log_lines else last_log_line
-            for line in log_lines[-tail_lines:]:
-                print(line)
-
-    extra_save_info = {
-            'total_log_lines':total_log_lines,
-            'last_job_id':job_id,
-            }
-    pspace.save_last_info(job_info, extra_save_info)
+    (job_info, total_log_lines) = pspace.print_last_log_lines(
+            job_id,
+            tail_lines,
+            line_start,
+            follow=cmd_config['follow']
+            )
+    if job_info is not None:
+        extra_save_info = {
+                'total_log_lines':total_log_lines,
+                'last_job_id':job_id,
+                }
+        pspace.save_last_info(job_info, extra_save_info)
 
 
 def command_create(args):

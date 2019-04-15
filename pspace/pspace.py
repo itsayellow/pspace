@@ -54,6 +54,62 @@ CMD_ARG_DEFAULTS = {
 
 # Moved here from bin/pspace -------------------------------------------------
 
+def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
+    """
+    Args:
+        tail_lines (int): how many lines to print at the end of the log
+            or 0 if all lines in log so far should be printed
+        follow (bool): whether or not to wait and print more log lines as they
+            appear.  Returns when 'PSEOF' line is read.
+    """
+    job_info = get_job_info(job_id)
+    if 'error' in job_info:
+        print_error(job_info)
+        return (None, None)
+
+    print("Job: " + job_id)
+    print("State: " + job_info['state'] + " "*10, end="", flush=True)
+    if follow and job_not_started(job_id, job_info):
+        # waiting for job to start, updating state while we wait
+        while job_not_started(job_id, job_info):
+            time.sleep(5)
+            last_state = job_info['state']
+            job_info = get_job_info(job_id)
+            if job_info['state'] != last_state:
+                print("\r", end="", flush=True)
+                print("State: " + job_info['state'] + " "*10, end="", flush=True)
+    print("")
+
+    # check job_started with old job_info so log_lines matches reported status
+    if job_started(job_id, job_info):
+        log_lines = get_log_lines(job_id, line_start=line_start)
+        total_log_lines = line_start + len(log_lines)
+        for line in log_lines[-tail_lines:]:
+            print(line)
+
+    if follow:
+        # TODO: use follow_log, move this code to it
+        end_time = None
+        line_start = len(log_lines) + line_start
+        last_log_line = log_lines[-1] if log_lines else ''
+        while last_log_line != "PSEOF":
+            job_info = get_job_info(job_id)
+            if job_done(job_id, job_info):
+                (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
+                if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
+                    break
+
+            time.sleep(5)
+
+            log_lines = get_log_lines(job_id, line_start=line_start)
+            line_start += len(log_lines)
+            last_log_line = log_lines[-1] if log_lines else last_log_line
+            for line in log_lines[-tail_lines:]:
+                print(line)
+
+    return (job_info, total_log_lines)
+
+
 def parse_jobinfo_dt(dt_in_str, utc_str=False):
     """From dt string from job_info, return datetime in UTC
     """
@@ -140,7 +196,7 @@ def get_cmd_config(args, extra_keys=None):
     cmd_config = {}
     for argkey in list(args_dict.keys()) + extra_keys:
         # Default to CMD_ARG_DEFAULTS value or None
-        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None) 
+        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None)
 
         # last command
         if argkey in args_to_pspacelast:
