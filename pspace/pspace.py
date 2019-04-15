@@ -313,7 +313,7 @@ def save_log(job_id, local_data_dir):
 def seconds_since_done(job_info):
     (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
     now_utc = datetime.datetime.now(datetime.timezone.utc) 
-    return (now_utc - finished_utc).seconds
+    return (now_utc - finished_utc).total_seconds()
 
 
 def follow_log(job_id, line_start=0):
