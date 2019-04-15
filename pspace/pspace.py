@@ -31,6 +31,12 @@ CMD_ARG_DEFAULTS = {
         'getart':{
             'destdir': 'data',
             },
+        'jobs':{
+            'utc': False,
+            },
+        'status':{
+            'utc': False,
+            }
         }
 
 

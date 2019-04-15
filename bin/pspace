@@ -8,7 +8,6 @@ command-line utility for starting/monitoring paperspace jobs
 # TODO: see if switches make sense (should -s and -l be reserved for short
 #       and long?)
 # TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
-# TODO: always use UTC or always use local (set by switch?)
 
 
 import argparse
@@ -98,12 +97,20 @@ def process_command_line(argv):
             '-l', '--last', action='store', type=int,
             help='Only list the last this many jobs matching.'
             )
+    parser_jobs.add_argument(
+            '-u', '--utc', action='store_true',
+            help='Display all times in UTC timezone.'
+            )
 
     # status
     parser_status = subparsers.add_parser('status', help='get a job\'s status')
     parser_status.add_argument(
             'job_id', nargs='?',
             help='ID of job to be checked.'
+            )
+    parser_status.add_argument(
+            '-u', '--utc', action='store_true',
+            help='Display all times in UTC timezone.'
             )
 
     # getart
@@ -153,7 +160,7 @@ def command_status(args):
     pspace.save_last_info(job_info)
 
     print_keys = ['state', 'Started', 'Finished', 'Duration', 'exitCode']
-    pspace.print_job_status(job_info, print_keys, utc_str=False)
+    pspace.print_job_status(job_info, print_keys, utc_str=cmd_config['utc'])
 
 
 def command_jobs(args):
@@ -179,7 +186,7 @@ def command_jobs(args):
     for job in job_list:
         if not first:
             print("")
-        pspace.print_job_status(job, print_keys, utc_str=False)
+        pspace.print_job_status(job, print_keys, utc_str=cmd_config['utc'])
         first = False
 
 
