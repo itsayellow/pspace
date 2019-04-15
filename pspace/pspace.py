@@ -52,62 +52,7 @@ CMD_ARG_DEFAULTS = {
 #   other exits at any time: Error, Cancelled
 
 
-# Moved here from bin/pspace -------------------------------------------------
-
-def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
-    """
-    Args:
-        tail_lines (int): how many lines to print at the end of the log
-            or 0 if all lines in log so far should be printed
-        follow (bool): whether or not to wait and print more log lines as they
-            appear.  Returns when 'PSEOF' line is read.
-    """
-    job_info = get_job_info(job_id)
-    if 'error' in job_info:
-        return (job_info, None)
-
-    print("Job: " + job_id)
-    print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    if follow and job_not_started(job_id, job_info):
-        # waiting for job to start, updating state while we wait
-        while job_not_started(job_id, job_info):
-            time.sleep(5)
-            last_state = job_info['state']
-            job_info = get_job_info(job_id)
-            if job_info['state'] != last_state:
-                print("\r", end="", flush=True)
-                print("State: " + job_info['state'] + " "*10, end="", flush=True)
-    print("")
-
-    # check job_started with old job_info so log_lines matches reported status
-    if job_started(job_id, job_info):
-        log_lines = get_log_lines(job_id, line_start=line_start)
-        total_log_lines = line_start + len(log_lines)
-        for line in log_lines[-tail_lines:]:
-            print(line)
-
-    if follow:
-        # TODO: use follow_log, move this code to it
-        end_time = None
-        line_start = len(log_lines) + line_start
-        last_log_line = log_lines[-1] if log_lines else ''
-        while last_log_line != "PSEOF":
-            job_info = get_job_info(job_id)
-            if job_done(job_id, job_info):
-                (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
-                if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
-                    break
-
-            time.sleep(5)
-
-            log_lines = get_log_lines(job_id, line_start=line_start)
-            line_start += len(log_lines)
-            last_log_line = log_lines[-1] if log_lines else last_log_line
-            for line in log_lines[-tail_lines:]:
-                print(line)
-
-    return (job_info, total_log_lines)
-
+# pspace helpers -------------------------------------------------------------
 
 def parse_jobinfo_dt(dt_in_str, utc_str=False):
     """From dt string from job_info, return datetime in UTC
@@ -233,22 +178,10 @@ def update_job_info(job_info, later_indent, utc_str=False):
     return job_info
 
 
-def print_job_status(job_info, print_keys, utc_str=False):
-    max_key_len = max([len(x) for x in print_keys])
-    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc_str=utc_str)
-
-    print(job_info['id'])
-    for key in print_keys:
-        post_key = " "*(max_key_len - len(key))
-        print(" "*3 + key + post_key + ": " + str(job_info.get(key, '')))
-
-
 def print_error(job_info):
     job_err = job_info['error']
     print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
 
-
-# pspace helpers -------------------------------------------------------------
 
 def job_not_started(job_id, job_info=None):
     """Check if has not started yet
@@ -280,7 +213,22 @@ def job_done(job_id, job_info=None):
     return job_info['state'] in ['Stopped', 'Cancelled', 'Failed', 'Error']
 
 
+def get_job_info(job_id):
+    job_info = paperspace.jobs.show({'jobId': job_id})
+    return job_info
+
+
 # pspace main api ------------------------------------------------------------
+
+def print_job_status(job_info, print_keys, utc_str=False):
+    max_key_len = max([len(x) for x in print_keys])
+    job_info = update_job_info(job_info, later_indent=max_key_len+6, utc_str=utc_str)
+
+    print(job_info['id'])
+    for key in print_keys:
+        post_key = " "*(max_key_len - len(key))
+        print(" "*3 + key + post_key + ": " + str(job_info.get(key, '')))
+
 
 def jobs_create(**kwargs):
     params = kwargs.copy()
@@ -298,6 +246,25 @@ def jobs_list(**kwargs):
 
     return jobs_list
 
+
+def get_artifacts(job_id, local_data_dir):
+    """Put artifact files/dirs in local_data_dir / job_id
+    """
+    # TODO: maybe make this command quiet and make our own progress?
+    local_data_path = pathlib.Path(local_data_dir)
+    dest_path = local_data_path / job_id
+    dest_path.mkdir(parents=True, exist_ok=True)
+    params = {
+            'jobId': job_id,
+            'dest': str(dest_path),
+            }
+    paperspace.jobs.artifactsGet(params)
+
+
+def stop_job(job_id):
+    return paperspace.jobs.stop({'jobId':job_id})
+
+# job log stuff ----------------------------------------------------------------
 
 def get_log_lines(job_id, line_start=0):
     # Keep asking for more log lines until we receive none, in case we hit
@@ -319,20 +286,6 @@ def get_log_lines(job_id, line_start=0):
     #   }
     # TODO: some of that info might be useful, return it?
     return [x['message'] for x in log_output]
-
-
-def get_artifacts(job_id, local_data_dir):
-    """Put artifact files/dirs in local_data_dir / job_id
-    """
-    # TODO: maybe make this command quiet and make our own progress?
-    local_data_path = pathlib.Path(local_data_dir)
-    dest_path = local_data_path / job_id
-    dest_path.mkdir(parents=True, exist_ok=True)
-    params = {
-            'jobId': job_id,
-            'dest': str(dest_path),
-            }
-    paperspace.jobs.artifactsGet(params)
 
 
 def save_log(job_id, local_data_dir):
@@ -374,13 +327,59 @@ def follow_log(job_id):
             break
 
 
-def get_job_info(job_id):
-    job_info = paperspace.jobs.show({'jobId': job_id})
-    return job_info
+def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
+    """
+    Args:
+        tail_lines (int): how many lines to print at the end of the log
+            or 0 if all lines in log so far should be printed
+        follow (bool): whether or not to wait and print more log lines as they
+            appear.  Returns when 'PSEOF' line is read.
+    """
+    job_info = get_job_info(job_id)
+    if 'error' in job_info:
+        return (job_info, None)
 
+    print("Job: " + job_id)
+    print("State: " + job_info['state'] + " "*10, end="", flush=True)
+    if follow and job_not_started(job_id, job_info):
+        # waiting for job to start, updating state while we wait
+        while job_not_started(job_id, job_info):
+            time.sleep(5)
+            last_state = job_info['state']
+            job_info = get_job_info(job_id)
+            if job_info['state'] != last_state:
+                print("\r", end="", flush=True)
+                print("State: " + job_info['state'] + " "*10, end="", flush=True)
+    print("")
 
-def stop_job(job_id):
-    return paperspace.jobs.stop({'jobId':job_id})
+    # check job_started with old job_info so log_lines matches reported status
+    if job_started(job_id, job_info):
+        log_lines = get_log_lines(job_id, line_start=line_start)
+        total_log_lines = line_start + len(log_lines)
+        for line in log_lines[-tail_lines:]:
+            print(line)
+
+    if follow:
+        # TODO: use follow_log, move this code to it
+        end_time = None
+        line_start = len(log_lines) + line_start
+        last_log_line = log_lines[-1] if log_lines else ''
+        while last_log_line != "PSEOF":
+            job_info = get_job_info(job_id)
+            if job_done(job_id, job_info):
+                (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
+                if datetime.datetime.now(datetime.timezone.utc) - finished_utc > datetime.timedelta(seconds=20):
+                    break
+
+            time.sleep(5)
+
+            log_lines = get_log_lines(job_id, line_start=line_start)
+            line_start += len(log_lines)
+            last_log_line = log_lines[-1] if log_lines else last_log_line
+            for line in log_lines[-tail_lines:]:
+                print(line)
+
+    return (job_info, total_log_lines)
 
 
 # yaml config -----------------------------------------------------------------
@@ -401,6 +400,11 @@ def get_yaml_config(subcommand):
 
 
 # pspace info ----------------------------------------------------------------
+
+# TODO: We probably don't need to save all job info.
+# really the only things we use are very few:
+#   last job ID
+#   last total log lines for a job ID
 
 def save_last_info(job_info, extra_info=None):
     if extra_info is None:
