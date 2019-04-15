@@ -216,12 +216,15 @@ def command_tail(args):
             line_start,
             follow=cmd_config['follow']
             )
-    if job_info is not None:
-        extra_save_info = {
-                'total_log_lines':total_log_lines,
-                'last_job_id':job_id,
-                }
-        pspace.save_last_info(job_info, extra_save_info)
+    if 'error' in job_info:
+        pspace.print_error(job_info)
+        return
+
+    extra_save_info = {
+            'total_log_lines':total_log_lines,
+            'last_job_id':job_id,
+            }
+    pspace.save_last_info(job_info, extra_save_info)
 
 
 def command_create(args):

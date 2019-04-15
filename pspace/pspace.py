@@ -64,8 +64,7 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
     """
     job_info = get_job_info(job_id)
     if 'error' in job_info:
-        print_error(job_info)
-        return (None, None)
+        return (job_info, None)
 
     print("Job: " + job_id)
     print("State: " + job_info['state'] + " "*10, end="", flush=True)
