@@ -54,6 +54,7 @@ CMD_ARG_DEFAULTS = {
 
 # pspace helpers -------------------------------------------------------------
 
+# TODO: can use naive dt_utc return value, may be simpler for other code
 def parse_jobinfo_dt(dt_in_str, utc_str=False):
     """From dt string from job_info, return datetime in UTC
     """
