@@ -135,11 +135,7 @@ def process_command_line(argv):
 # commands -------------------------------------------------------------------
 
 def command_newyaml(args):
-    yaml_path = pathlib.Path('pspace.yaml')
-    if yaml_path.exists():
-        yaml_path.rename('pspace.yaml.bak')
-    with yaml_path.open('w') as yaml_fh:
-        yaml.dump(pspace.CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
+    pspace.save_new_yaml_config()
 
 
 def command_status(args):

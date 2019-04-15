@@ -386,6 +386,14 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
 
 # yaml config -----------------------------------------------------------------
 
+def save_new_yaml_config():
+    yaml_path = pathlib.Path('pspace.yaml')
+    if yaml_path.exists():
+        yaml_path.rename('pspace.yaml.bak')
+    with yaml_path.open('w') as yaml_fh:
+        yaml.dump(CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
+
+
 def get_yaml_config(subcommand):
     try:
         with open(PSPACE_CONFIG_FILE, 'r') as yaml_fh:
