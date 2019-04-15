@@ -183,6 +183,13 @@ def print_error(job_info):
     print("ERROR {0}: {1}".format(job_err['status'], job_err['message']))
 
 
+def get_job_info(job_id):
+    job_info = paperspace.jobs.show({'jobId': job_id})
+    return job_info
+
+
+# job status helpers ----------------------------------------------------------
+
 def job_not_started(job_id, job_info=None):
     """Check if has not started yet
     Args:
@@ -211,11 +218,6 @@ def job_done(job_id, job_info=None):
     if job_info is None:
         job_info = paperspace.jobs.show({'jobId': job_id})
     return job_info['state'] in ['Stopped', 'Cancelled', 'Failed', 'Error']
-
-
-def get_job_info(job_id):
-    job_info = paperspace.jobs.show({'jobId': job_id})
-    return job_info
 
 
 # pspace main api ------------------------------------------------------------
