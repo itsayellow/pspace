@@ -14,7 +14,12 @@ import paperspace
 
 
 PSPACE_INFO_DIR = '.pspace'
+YAML_CONFIG_SEARCH_PATHS_LOCAL = [
+        pathlib.Path('.'),
+        pathlib.Path('./.pspace'),
+        ]
 PSPACE_CONFIG_FILE = 'pspace.yaml'
+PSPACE_LASTINFO_FILE = 'last_cmd_info.yaml'
 # Any default not listed here will show up as None
 CMD_ARG_DEFAULTS = {
         'create':{
@@ -312,7 +317,7 @@ def save_log(job_id, local_data_dir):
 
 def seconds_since_done(job_info):
     (finished_utc, _) = parse_jobinfo_dt(job_info['dtFinished'])
-    now_utc = datetime.datetime.now(datetime.timezone.utc) 
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
     return (now_utc - finished_utc).total_seconds()
 
 
@@ -387,6 +392,20 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
 
 # yaml config -----------------------------------------------------------------
 
+def get_yaml_cwd():
+    yaml_config = None
+    for dir_path in YAML_CONFIG_SEARCH_PATHS_LOCAL:
+        yaml_config_file_path = dir_path / PSPACE_CONFIG_FILE
+        try:
+            with yaml_config_file_path.open('r') as yaml_fh:
+                yaml_config = yaml.safe_load(yaml_fh)
+        except IOError:
+            pass
+        else:
+            break
+    return yaml_config
+
+
 def save_new_yaml_config():
     yaml_path = pathlib.Path('pspace.yaml')
     if yaml_path.exists():
@@ -396,14 +415,10 @@ def save_new_yaml_config():
 
 
 def get_yaml_config(subcommand):
-    try:
-        with open(PSPACE_CONFIG_FILE, 'r') as yaml_fh:
-            yaml_config = yaml.safe_load(yaml_fh)
-    except IOError:
-        yaml_config = {}
+    yaml_config = get_yaml_cwd()
 
     job_config = {}
-    if subcommand in yaml_config:
+    if yaml_config is not None and subcommand in yaml_config:
         for key in yaml_config[subcommand]:
             job_config[key] = yaml_config[subcommand][key]
 
@@ -418,11 +433,17 @@ def get_yaml_config(subcommand):
 #   last total log lines for a job ID
 
 def save_last_info(job_info, extra_info=None):
+    # only save .pspace/ if pspace.yaml in cwd,
+    #   so we don't crap up every dir with a .pspace subdir
+    if get_yaml_cwd() is None:
+        return
+
     if extra_info is None:
         extra_info = {}
+
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
     pspace_info_path.mkdir(exist_ok=True)
-    pspace_job_info_path = pspace_info_path / 'info.yaml'
+    pspace_job_info_path = pspace_info_path / PSPACE_LASTINFO_FILE
 
     job_info = {x:job_info[x] for x in job_info if job_info[x] is not None}
     pspace_info = {'info_updated': str(datetime.datetime.now())}
@@ -438,7 +459,7 @@ def get_last_info():
     info = {}
 
     pspace_info_path = pathlib.Path('.') / PSPACE_INFO_DIR
-    pspace_job_info_path = pspace_info_path / 'info.yaml'
+    pspace_job_info_path = pspace_info_path / PSPACE_LASTINFO_FILE
     try:
         with pspace_job_info_path.open('r') as pspace_job_info_fh:
             info = yaml.safe_load(pspace_job_info_fh)
