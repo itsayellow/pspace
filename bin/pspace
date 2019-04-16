@@ -41,7 +41,10 @@ def process_command_line(argv):
     subparsers = parser.add_subparsers(dest='pspace_cmd', help='sub-command help')
 
     # create
-    parser_create = subparsers.add_parser('create', help='create a new job')
+    create_desc = 'create a new job'
+    parser_create = subparsers.add_parser(
+            'create', help=create_desc, description=create_desc
+            )
     parser_create.add_argument(
             '--command', action='store',
             help='What command to execute on remote machine.'
@@ -64,7 +67,10 @@ def process_command_line(argv):
             )
 
     # tail (of job log file)
-    parser_tail = subparsers.add_parser('tail', help='get the tail of a job\'s log')
+    tail_desc = 'get the tail of a job\'s log'
+    parser_tail = subparsers.add_parser(
+            'tail', help=tail_desc, description=tail_desc
+            )
     parser_tail.add_argument(
             'job_id', nargs='?',
             help='ID of job to be checked.'
@@ -84,7 +90,10 @@ def process_command_line(argv):
             )
 
     # jobs
-    parser_jobs = subparsers.add_parser('jobs', help='list jobs')
+    jobs_desc = 'list jobs'
+    parser_jobs = subparsers.add_parser(
+            'jobs', help=jobs_desc, description=jobs_desc
+            )
     parser_jobs.add_argument(
             '-p', '--project', action='store',
             help='Filter only jobs matching this project.'
@@ -99,22 +108,28 @@ def process_command_line(argv):
             )
     parser_jobs.add_argument(
             '-u', '--utc', action='store_true',
-            help='Display all times in UTC timezone.'
+            help='Display all times as UTC.'
             )
 
     # status
-    parser_status = subparsers.add_parser('status', help='get a job\'s status')
+    status_desc = 'get a job\'s status'
+    parser_status = subparsers.add_parser(
+            'status', help=status_desc, description=status_desc
+            )
     parser_status.add_argument(
             'job_id', nargs='?',
             help='ID of job to be checked.'
             )
     parser_status.add_argument(
             '-u', '--utc', action='store_true',
-            help='Display all times in UTC timezone.'
+            help='Display all times as UTC.'
             )
 
     # getart
-    parser_getart = subparsers.add_parser('getart', help='download artifact files from a job')
+    getart_desc = 'download artifact files from a job'
+    parser_getart = subparsers.add_parser(
+            'getart', help=getart_desc, description=getart_desc
+            )
     parser_getart.add_argument(
             'job_id', nargs='?',
             help='ID of job to fetch artifacts for.'
@@ -125,14 +140,20 @@ def process_command_line(argv):
             )
 
     # stop
-    parser_stop = subparsers.add_parser('stop', help='stop or cancel a job')
+    stop_desc = 'stop or cancel a job'
+    parser_stop = subparsers.add_parser(
+            'stop', help=stop_desc, description=stop_desc
+            )
     parser_stop.add_argument(
             'job_id', nargs='?',
             help='ID of job to stop.'
             )
 
     # newyaml
-    parser_stop = subparsers.add_parser('newyaml', help='create new yaml config file from defaults')
+    newyaml_desc = 'create new yaml config file from defaults'
+    parser_stop = subparsers.add_parser(
+            'newyaml', help=newyaml_desc, description=newyaml_desc
+            )
 
     args = parser.parse_args(argv)
 
