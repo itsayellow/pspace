@@ -118,7 +118,7 @@ def print_create_options(create_options):
     command_str = wrap_command_str(create_options['command'], 79, indent)
 
     for opt in sorted(create_options):
-        if opt=='command':
+        if opt == 'command':
             opt_value = command_str
         else:
             opt_value = create_options[opt]
@@ -358,10 +358,16 @@ def follow_job_state(job_id):
 def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
     """
     Args:
+        job_id (str): job_id of paperspace job
         tail_lines (int): how many lines to print at the end of the log
             or 0 if all lines in log so far should be printed
+        line_start (int): what line to start fetching from remote log
         follow (bool): whether or not to wait and print more log lines as they
             appear.  Returns when 'PSEOF' line is read.
+
+    Returns:
+        (job_info, total_log_lines): job_info for this job, and total_log_lines
+            so far
     """
     job_info = get_job_info(job_id)
     if 'error' in job_info:
@@ -427,6 +433,8 @@ def get_yaml_config(subcommand):
 
 # pspace info ----------------------------------------------------------------
 
+# TODO: could save last_log_lines in per job database in ~/.pspace (like
+#   pylint does for files.)
 # TODO: We probably don't need to save all job info.
 # really the only things we use are very few:
 #   last job ID

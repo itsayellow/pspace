@@ -4,23 +4,19 @@ command-line utility for starting/monitoring paperspace jobs
     notably can use a yaml file in cwd to specify defaults
 """
 
-# TODO: Should we only make a .pspace dir if a pspace.yaml file exists?
 # TODO: see if switches make sense (should -s and -l be reserved for short
 #       and long?)
 # TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
 
 
 import argparse
-import datetime
 import pathlib
 import sys
-import time
 
 import pspace
-import yaml
 
 
-VALID_JOB_STATES = [ 'Pending', 'Provisioned', 'Running', 'Stopped',
+VALID_JOB_STATES = ['Pending', 'Provisioned', 'Running', 'Stopped',
         'Error', 'Failed', 'Cancelled']
 
 def process_command_line(argv):
@@ -258,14 +254,14 @@ def command_create(args):
         cmd_config['project'] = pathlib.Path.cwd().name
 
     print('Submitting with options:')
-    print_create_options(cmd_config)
+    pspace.print_create_options(cmd_config)
 
     job_info = pspace.jobs_create(**cmd_config)
     if 'error' in job_info:
         pspace.print_error(job_info)
         return
-    else:
-        print("Job " + job_info['id'] + " created.")
+
+    print("Job " + job_info['id'] + " created.")
 
     pspace.save_last_info(job_info)
 
