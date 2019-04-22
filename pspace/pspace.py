@@ -41,6 +41,7 @@ CMD_ARG_DEFAULTS = {
             'destdir': ['data', 'data'],
             },
         'jobs':{
+            'last': [None, None],
             'utc': [False, False],
             },
         'status':{
@@ -143,6 +144,8 @@ def print_create_options(create_options):
 
 
 def get_cmd_config(args, extra_keys=None):
+    # TODO: need to handle mutually-exclusive config items
+    #   e.g. command vs. commands in create
     if extra_keys is None:
         extra_keys = []
 

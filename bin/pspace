@@ -105,7 +105,7 @@ def process_command_line(argv):
             )
     parser_jobs.add_argument(
             '-l', '--last', action='store', type=int,
-            help='Only list the last this many jobs matching.'
+            help='Only list the last this many jobs matching filter(s).'
             )
     parser_jobs.add_argument(
             '-u', '--utc', action='store_true',
