@@ -70,7 +70,7 @@ CMD_ARG_DEFAULTS = {
 
 # pspace helpers -------------------------------------------------------------
 
-# TODO: can use naive dt_utc return value, may be simpler for other code
+# TODO 20190422: can use naive dt_utc return value, may be simpler for other code
 def parse_jobinfo_dt(dt_in_str, utc_str=False):
     """From dt string from job_info, return datetime in UTC
     """
@@ -144,7 +144,7 @@ def print_create_options(create_options):
 
 
 def get_cmd_config(args, extra_keys=None):
-    # TODO: need to handle mutually-exclusive config items
+    # TODO 20190422: need to handle mutually-exclusive config items
     #   e.g. command vs. commands in create
     if extra_keys is None:
         extra_keys = []
@@ -289,7 +289,7 @@ def jobs_list(**kwargs):
 def get_artifacts(job_id, local_data_dir):
     """Put artifact files/dirs in local_data_dir / job_id
     """
-    # TODO: maybe make this command quiet and make our own progress?
+    # TODO 20190422: maybe make this command quiet and make our own progress?
     local_data_path = pathlib.Path(local_data_dir)
     dest_path = local_data_path / job_id
     dest_path.mkdir(parents=True, exist_ok=True)
@@ -323,7 +323,7 @@ def get_log_lines(job_id, line_start=0):
     #       'timestamp':<str, time in UTC>,
     #       'message':<str, line of log output>,
     #   }
-    # TODO: some of that info might be useful, return it?
+    # TODO 20190422: some of that info might be useful, return it?
     return [x['message'] for x in log_output]
 
 
@@ -346,7 +346,7 @@ def seconds_since_done(job_info):
     return (now_utc - finished_utc).total_seconds()
 
 
-# TODO: one time this did not read or notice the PSEOF.  bug, but how?
+# TODO 20190422: one time this did not read or notice the PSEOF.  bug, but how?
 def follow_log(job_id, line_start=0):
     last_log_line = ""
     while last_log_line != "PSEOF":
@@ -417,7 +417,7 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
     last_log_line = log_lines[-1] if log_lines else ''
     if follow and last_log_line != "PSEOF":
         line_start = len(log_lines) + line_start
-        # TODO: try-except ctrl-c around this to enable rest of code to execute?
+        # TODO 20190422: try-except ctrl-c around this to enable rest of code to execute?
         job_info = follow_log(job_id, line_start)
 
     return (job_info, total_log_lines)
@@ -462,9 +462,9 @@ def get_yaml_config(subcommand):
 
 # pspace info ----------------------------------------------------------------
 
-# TODO: could save last_log_lines in per job database in ~/.pspace (like
+# TODO 20190422: could save last_log_lines in per job database in ~/.pspace (like
 #   pylint does for files.)
-# TODO: We probably don't need to save all job info.
+# TODO 20190422: We probably don't need to save all job info.
 # really the only things we use are very few:
 #   last job ID
 #   last total log lines for a job ID

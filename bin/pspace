@@ -4,9 +4,9 @@ command-line utility for starting/monitoring paperspace jobs
     notably can use a yaml file in cwd to specify defaults
 """
 
-# TODO: see if switches make sense (should -s and -l be reserved for short
+# TODO 20190422: see if switches make sense (should -s and -l be reserved for short
 #       and long?)
-# TODO: maybe a --quiet/-q switch for some of these to reduce chattiness?
+# TODO 20190422: maybe a --quiet/-q switch for some of these to reduce chattiness?
 
 
 import argparse
@@ -276,7 +276,7 @@ def command_getart(args):
 
     print("Retrieving artifacts for job " + cmd_config['job_id'] + " ...")
     pspace.get_artifacts(cmd_config['job_id'], cmd_config['destdir'])
-    # TODO: error handling
+    # TODO 20190422: error handling
     pspace.save_log(cmd_config['job_id'], cmd_config['destdir'])
 
 
