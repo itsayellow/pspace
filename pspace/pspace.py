@@ -21,26 +21,30 @@ YAML_CONFIG_SEARCH_PATHS_LOCAL = [
 PSPACE_CONFIG_FILE = 'pspace.yaml'
 PSPACE_LASTINFO_FILE = 'last_cmd_info.yaml'
 # Any default not listed here will show up as None
+#   value is [<actual command default>, <newyaml init default>
 CMD_ARG_DEFAULTS = {
         'create':{
-            'command': 'echo hello world',
-            'container': 'tensorflow/tensorflow-python:latest',
-            'machineType': 'K80',
-            'ignoreFiles': ['ignore1', 'ignore2'],
+            'command': [None, 'echo hello world'],
+            'container': [
+                'tensorflow/tensorflow-python:latest',
+                'tensorflow/tensorflow-python:latest',
+                ],
+            'machineType': ['K80','K80'],
+            'ignoreFiles': [None, ['ignore1', 'ignore2']],
             },
         'tail':{
-            'follow': False,
-            'last': 20,
-            'all': False,
+            'follow': [False, False],
+            'last': [20, 20],
+            'all': [False, False],
             },
         'getart':{
-            'destdir': 'data',
+            'destdir': ['data', 'data'],
             },
         'jobs':{
-            'utc': False,
+            'utc': [False, False],
             },
         'status':{
-            'utc': False,
+            'utc': [False, False],
             }
         }
 
@@ -115,15 +119,27 @@ def print_create_options(create_options):
     indent_str = " "*4
     indent = 4 + len('command:  ')
 
-    command_str = wrap_command_str(create_options['command'], 79, indent)
+    if create_options['command'] is not None:
+        command_str = wrap_command_str(create_options['command'], 79, indent)
+    elif create_options['commands'] is not None:
+        command_str = ''
+        first_time = True
+        for cmd in create_options['commands']:
+            if not first_time:
+                command_str += "\n" + " "*indent
+            command_str += wrap_command_str(cmd, 79, indent + 4)
+            first_time = False
 
     for opt in sorted(create_options):
         if opt == 'command':
             opt_value = command_str
+        elif opt == 'commands':
+            opt_value = command_str
         else:
             opt_value = create_options[opt]
 
-        print(indent_str + opt + ": " + str(opt_value))
+        if create_options[opt] is not None:
+            print(indent_str + opt + ": " + str(opt_value))
 
 
 def get_cmd_config(args, extra_keys=None):
@@ -152,7 +168,8 @@ def get_cmd_config(args, extra_keys=None):
     cmd_config = {}
     for argkey in list(args_dict.keys()) + extra_keys:
         # Default to CMD_ARG_DEFAULTS value or None
-        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, None)
+        # first item in dict value list is for newyaml
+        cmd_config[argkey] = CMD_ARG_DEFAULTS.get(cmd, {}).get(argkey, [None])[0]
 
         # last command
         if argkey in args_to_pspacelast:
@@ -248,7 +265,12 @@ def jobs_create(**kwargs):
     params = kwargs.copy()
     if 'project' not in params or params['project'] is None:
         params['project'] = pathlib.Path.cwd().name
-    params.update({'workspace':'.', 'tail':'false',})
+    if 'workspace' not in params or params['workspace'] is None:
+        params['workspace'] = '.'
+    if params.get('commands', None) is not None:
+        params['command'] = "; ".join(params['commands'])
+        del params['commands']
+    params.update({'tail':'false',})
     job_info = paperspace.jobs.create(params, no_logging=True)
     return job_info
 
@@ -321,6 +343,7 @@ def seconds_since_done(job_info):
     return (now_utc - finished_utc).total_seconds()
 
 
+# TODO: one time this did not read or notice the PSEOF.  bug, but how?
 def follow_log(job_id, line_start=0):
     last_log_line = ""
     while last_log_line != "PSEOF":
@@ -388,7 +411,8 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
         for line in log_lines[-tail_lines:]:
             print(line)
 
-    if follow and log_lines[-1] != "PSEOF":
+    last_log_line = log_lines[-1] if log_lines else ''
+    if follow and last_log_line != "PSEOF":
         line_start = len(log_lines) + line_start
         # TODO: try-except ctrl-c around this to enable rest of code to execute?
         job_info = follow_log(job_id, line_start)
@@ -416,6 +440,8 @@ def save_new_yaml_config():
     yaml_path = pathlib.Path('pspace.yaml')
     if yaml_path.exists():
         yaml_path.rename('pspace.yaml.bak')
+    # second item in dict value list is for newyaml
+    newyaml_defaults = {x:CMD_ARG_DEFAULTS[x][1] for x in CMD_ARG_DEFAULTS}
     with yaml_path.open('w') as yaml_fh:
         yaml.dump(CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
 

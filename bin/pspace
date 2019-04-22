@@ -42,12 +42,8 @@ def process_command_line(argv):
             'create', help=create_desc, description=create_desc
             )
     parser_create.add_argument(
-            '--command', action='store',
-            help='What command to execute on remote machine.'
-            )
-    parser_create.add_argument(
             '--machineType', action='store',
-            help='What type of remote machine to use.'
+            help='The type of remote machine to use.'
             )
     parser_create.add_argument(
             '--project', action='store',
@@ -60,6 +56,15 @@ def process_command_line(argv):
     parser_create.add_argument(
             '--container', action='store',
             help='The docker container to use.'
+            )
+    group = parser_create.add_mutually_exclusive_group()
+    group.add_argument(
+            '--command', action='store',
+            help='A command to execute on remote machine.'
+            )
+    group.add_argument(
+            '--commands', action='store',
+            help='A list of commands to execute on remote machine.'
             )
 
     # tail (of job log file)
