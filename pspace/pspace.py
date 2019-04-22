@@ -24,7 +24,7 @@ PSPACE_LASTINFO_FILE = 'last_cmd_info.yaml'
 #   value is [<actual command default>, <newyaml init default>
 CMD_ARG_DEFAULTS = {
         'create':{
-            'command': [None, 'echo hello world'],
+            'commands': [None, ['echo hello world']],
             'container': [
                 'tensorflow/tensorflow-python:latest',
                 'tensorflow/tensorflow-python:latest',
@@ -35,7 +35,6 @@ CMD_ARG_DEFAULTS = {
         'tail':{
             'follow': [False, False],
             'last': [20, 20],
-            'all': [False, False],
             },
         'getart':{
             'destdir': ['data', 'data'],
@@ -120,21 +119,16 @@ def print_create_options(create_options):
     indent_str = " "*4
     indent = 4 + len('command:  ')
 
-    if create_options['command'] is not None:
-        command_str = wrap_command_str(create_options['command'], 79, indent)
-    elif create_options['commands'] is not None:
-        command_str = ''
-        first_time = True
-        for cmd in create_options['commands']:
-            if not first_time:
-                command_str += "\n" + " "*indent
-            command_str += wrap_command_str(cmd, 79, indent + 4)
-            first_time = False
+    command_str = ''
+    first_time = True
+    for cmd in create_options['commands']:
+        if not first_time:
+            command_str += "\n" + " "*indent
+        command_str += wrap_command_str(cmd, 79, indent + 4)
+        first_time = False
 
     for opt in sorted(create_options):
-        if opt == 'command':
-            opt_value = command_str
-        elif opt == 'commands':
+        if opt == 'commands':
             opt_value = command_str
         else:
             opt_value = create_options[opt]
@@ -144,8 +138,6 @@ def print_create_options(create_options):
 
 
 def get_cmd_config(args, extra_keys=None):
-    # TODO 20190422: need to handle mutually-exclusive config items
-    #   e.g. command vs. commands in create
     if extra_keys is None:
         extra_keys = []
 
@@ -462,8 +454,6 @@ def get_yaml_config(subcommand):
 
 # pspace info ----------------------------------------------------------------
 
-# TODO 20190422: could save last_log_lines in per job database in ~/.pspace (like
-#   pylint does for files.)
 # TODO 20190422: We probably don't need to save all job info.
 # really the only things we use are very few:
 #   last job ID
