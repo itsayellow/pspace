@@ -436,7 +436,11 @@ def save_new_yaml_config():
     if yaml_path.exists():
         yaml_path.rename('pspace.yaml.bak')
     # second item in dict value list is for newyaml
-    newyaml_defaults = {x:CMD_ARG_DEFAULTS[x][1] for x in CMD_ARG_DEFAULTS}
+    newyaml_defaults = copy.copy(CMD_ARG_DEFAULTS)
+    for cmd_def in newyaml_defaults:
+        for opt in newyaml_defaults[cmd_def]:
+            newyaml_defaults[cmd_def][opt] = newyaml_defaults[cmd_def][opt][1]
+
     with yaml_path.open('w') as yaml_fh:
         yaml.dump(CMD_ARG_DEFAULTS, yaml_fh, width=70, indent=4, sort_keys=True)
 
