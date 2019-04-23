@@ -76,7 +76,7 @@ def process_command_line(argv):
             help='Follow the log file until cancelled or PSEOF.'
             )
     parser_tail.add_argument(
-            '-l', '--last', action='store', type=int,
+            '-l', '--last', action='store',
             help='How many lines at the end of the log (or "all") (default: 20)'
             )
 
@@ -205,10 +205,13 @@ def command_jobs(args):
 def command_tail(args):
     cmd_config = pspace.get_cmd_config(args, ['total_log_lines', 'last_job_id'])
 
-    tail_lines = cmd_config['last']
-    if cmd_config['last'].startswith('a') or cmd_config['last'].startswith('A'):
-        # tail_lines = 0 is special value that indicates show all lines
-        tail_lines = 0
+    try:
+        if cmd_config['last'].startswith('a') or cmd_config['last'].startswith('A'):
+            # tail_lines = 0 is special value that indicates show all lines
+            cmd_config['last'] = 0
+    except AttributeError:
+        pass
+    tail_lines = int(cmd_config['last'])
 
     job_id = cmd_config['job_id']
     if job_id is None:

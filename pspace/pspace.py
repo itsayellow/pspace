@@ -34,7 +34,7 @@ CMD_ARG_DEFAULTS = {
             },
         'tail':{
             'follow': [False, False],
-            'last': [20, 20],
+            'last': ['all', '20'],
             },
         'getart':{
             'destdir': ['data', 'data'],
