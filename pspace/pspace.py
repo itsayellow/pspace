@@ -34,7 +34,7 @@ CMD_ARG_DEFAULTS = {
             },
         'tail':{
             'follow': [False, False],
-            'last': ['all', '20'],
+            'last': ['all', 20],
             },
         'getart':{
             'destdir': ['data', 'data'],
@@ -387,6 +387,8 @@ def print_last_log_lines(job_id, tail_lines=0, line_start=0, follow=False):
         (job_info, total_log_lines): job_info for this job, and total_log_lines
             so far
     """
+    total_log_lines = 0
+    log_lines = []
     job_info = get_job_info(job_id)
     if 'error' in job_info:
         return (job_info, None)
