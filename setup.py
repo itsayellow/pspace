@@ -21,7 +21,10 @@ setup(
             ],
         keywords='cloud paperspace',
         packages=['pspace'],
-        install_requires=['paperspace', 'pyyaml'],
+        install_requires=[
+            'paperspace<0.2.0',
+            'pyyaml',
+            ],
         scripts=[
             'bin/pspace',
             ],

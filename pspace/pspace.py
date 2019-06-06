@@ -266,7 +266,7 @@ def jobs_create(**kwargs):
         params['command'] = "; ".join(params['commands'])
         del params['commands']
     params.update({'tail':'false',})
-    job_info = paperspace.jobs.create(params, no_logging=True)
+    job_info = paperspace.jobs_create(params, no_logging=True)
     return job_info
 
 
@@ -343,6 +343,11 @@ def follow_log(job_id, line_start=0):
     last_log_line = ""
     while last_log_line != "PSEOF":
         job_info = get_job_info(job_id)
+        # TODO 20190509: one time the next job_done had KeyError about 'state'
+        #   need to redo job_info if error or empty?
+        if 'error' in job_info:
+            print("DEBUG: Error in job_info:")
+            print(job_info)
         if job_done(job_id, job_info) and seconds_since_done(job_info) > 20:
             break
 
