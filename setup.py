@@ -25,9 +25,11 @@ setup(
             'paperspace<0.2.0',
             'pyyaml',
             ],
-        scripts=[
-            'bin/pspace',
-            ],
+        entry_points={
+            'console_scripts':[
+                'pspace=pspace.cli:cli'
+                ]
+            }
         #python_requires='>=3',
         )
 
