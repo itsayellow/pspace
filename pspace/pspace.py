@@ -266,7 +266,7 @@ def jobs_create(**kwargs):
         params['command'] = "; ".join(params['commands'])
         del params['commands']
     params.update({'tail':'false',})
-    job_info = paperspace.jobs_create(params, no_logging=True)
+    job_info = paperspace.jobs.create(params, no_logging=True)
     return job_info
 
 
