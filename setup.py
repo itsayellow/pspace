@@ -30,6 +30,6 @@ setup(
                 'pspace=pspace.cli:cli'
                 ]
             }
-        #python_requires='>=3',
+        python_requires='>=3',
         )
 
