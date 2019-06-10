@@ -29,7 +29,7 @@ setup(
             'console_scripts':[
                 'pspace=pspace.cli:cli'
                 ]
-            }
+            },
         python_requires='>=3',
         )
 
