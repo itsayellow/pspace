@@ -88,30 +88,47 @@ def parse_jobinfo_dt(dt_in_str, utc_str=False):
 
 
 def wrap_command_str(in_str, max_width, indent):
+    """Commands ending with semicolon are split with a carriage return after 
+        semicolon.  Each command is split as necessary to not overrun the end
+        of the line by splitting before an option.
+    """
     max_width = max_width - indent
-    # wrap command list in a good way for commands (split at start of switch)
-    command_list = in_str.split(' -')
-    # after splitting, join as many pieces together that will fit on line
+    # split commands at ;
+    command_list = in_str.split('; ')
+    command_list = [x + ';' for x in command_list]
     new_command_list = []
-    in_start = 0
-    while in_start < len(command_list):
-        in_end = in_start + 1
-        while in_end <= len(command_list):
-            if len(' -'.join(command_list[in_start:in_end])) < max_width:
-                in_end += 1
-            else:
-                in_end -= 1
-                in_end = max(in_start + 1, in_end)
-                break
-        new_command_list.append(' -'.join(command_list[in_start:in_end]))
-        in_start = in_end
+    for command in command_list:
+        # wrap command list in a good way for commands (split at start of switch)
+        command_part_list = command.split(' -')
+        # after splitting, join as many pieces together that will fit on line
+        new_command_part_list = []
+        in_start = 0
+        while in_start < len(command_part_list):
+            in_end = in_start + 1
+            while in_end <= len(command_part_list):
+                if len(' -'.join(command_part_list[in_start:in_end])) < max_width:
+                    in_end += 1
+                else:
+                    in_end -= 1
+                    in_end = max(in_start + 1, in_end)
+                    break
+            new_command_part_list.append(' -'.join(command_part_list[in_start:in_end]))
+            in_start = in_end
+        new_command_list.append(new_command_part_list)
 
     command_str = ""
-    for (i, command_substr) in enumerate(new_command_list):
-        if i == 0:
-            command_str += command_substr + "\n"
-        else:
-            command_str += " "*indent + "-" + command_substr + "\n"
+    all_commands_start = True
+    for command_parts in new_command_list:
+        command_start = True
+        for command_substr in command_parts:
+            if all_commands_start:
+                command_str += command_substr + "\n"
+                all_commands_start = False
+            elif command_start:
+                command_str += " "*(indent-1) + command_substr + "\n"
+                command_start = False
+            else:
+                command_str += " "*indent + "-" + command_substr + "\n"
     return command_str.rstrip()
 
 
