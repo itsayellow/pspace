@@ -88,7 +88,7 @@ def parse_jobinfo_dt(dt_in_str, utc_str=False):
 
 
 def wrap_command_str(in_str, max_width, indent):
-    """Commands ending with semicolon are split with a carriage return after 
+    """Commands ending with semicolon are split with a carriage return after
         semicolon.  Each command is split as necessary to not overrun the end
         of the line by splitting before an option.
     """
@@ -134,15 +134,19 @@ def wrap_command_str(in_str, max_width, indent):
 
 def print_create_options(create_options):
     indent_str = " "*4
-    indent = 4 + len('command:  ')
+    indent = len(indent_str + 'commands:  ')
 
     command_str = ''
     first_time = True
-    for cmd in create_options['commands']:
-        if not first_time:
-            command_str += "\n" + " "*indent
-        command_str += wrap_command_str(cmd, 79, indent + 4)
-        first_time = False
+
+    cmd = "; ".join(create_options['commands'])
+    command_str = wrap_command_str(cmd, 79, indent)
+
+    #for cmd in create_options['commands']:
+    #    if not first_time:
+    #        command_str += "\n" + " "*indent
+    #    command_str += wrap_command_str(cmd, 79, indent + 4)
+    #    first_time = False
 
     for opt in sorted(create_options):
         if opt == 'commands':
@@ -300,13 +304,14 @@ def get_artifacts(job_id, local_data_dir):
     """
     # TODO 20190422: maybe make this command quiet and make our own progress?
     local_data_path = pathlib.Path(local_data_dir)
-    dest_path = local_data_path / job_id
-    dest_path.mkdir(parents=True, exist_ok=True)
+    local_data_path.mkdir(parents=True, exist_ok=True)
     params = {
             'jobId': job_id,
-            'dest': str(dest_path),
+            'dest': str(local_data_path),
             }
     paperspace.jobs.artifactsGet(params)
+    # make 0-byte-size file with jobid
+    (local_data_path / job_id).open('w').close()
 
 
 def stop_job(job_id):
