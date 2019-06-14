@@ -142,12 +142,6 @@ def print_create_options(create_options):
     cmd = "; ".join(create_options['commands'])
     command_str = wrap_command_str(cmd, 79, indent)
 
-    #for cmd in create_options['commands']:
-    #    if not first_time:
-    #        command_str += "\n" + " "*indent
-    #    command_str += wrap_command_str(cmd, 79, indent + 4)
-    #    first_time = False
-
     for opt in sorted(create_options):
         if opt == 'commands':
             opt_value = command_str
