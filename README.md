@@ -2,4 +2,15 @@
 Python support for running jobs on Paperspace cloud computing.
 
 ## Installation
-    pipx install --spec git+https://github.com/itsayellow/pspace pspace
+
+Install [pipx](https://github.com/pipxproject/pipx).
+
+```
+pip install pipx
+```
+
+Install pspace.
+
+```
+pipx install git+https://github.com/itsayellow/pspace
+```
